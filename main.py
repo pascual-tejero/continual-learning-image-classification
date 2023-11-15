@@ -46,7 +46,7 @@ def main(args):
     
     # Get the dataloader
     datasets = get_datasets(args)
-
+    quit()
     # Train the model using the naive approach
     dicc_avg_acc["Naive"] = naive_training(datasets, args)
 
@@ -74,8 +74,8 @@ if __name__ == '__main__':
     argparse.add_argument('--batch_size', type=int, default=50)
     argparse.add_argument('--epochs', type=int, default=20)
     argparse.add_argument('--lr', type=float, default=0.001)
-    # argparse.add_argument('--dataset', type=str, default="mnist")
-    argparse.add_argument('--dataset', type=str, default="cifar10")
+    argparse.add_argument('--dataset', type=str, default="mnist")
+    # argparse.add_argument('--dataset', type=str, default="cifar10")
 
     # EWC parameters
     argparse.add_argument('--ewc_lambda' , type=float, default=5)

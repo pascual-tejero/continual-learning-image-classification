@@ -47,7 +47,27 @@ def load_CIFAR10(ROOT):
     Xte, Yte = load_CIFAR_batch(os.path.join(ROOT, 'test_batch'))
     return Xtr, Ytr, Xte, Yte
 
+def download_CIFAR10():
+    """ download and extract the cifar10 dataset """
+    dataset_link = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
+    file_name = 'cifar-10-python.tar.gz'
+    if os.path.exists('./datasets/cifar10/') == False:
+        os.makedirs('./datasets/cifar10/')
+    out_path = os.path.join('./datasets/cifar10/', file_name)
+    cmd = ['wget', dataset_link, '-O', out_path]
+    print('Downloading CIFAR-10 from {}'.format(dataset_link))
+    print(check_output(cmd).decode())
+    cmd = ['tar', '-zxvf', out_path, '-C', './datasets/cifar10/']
+    print('Extracting CIFAR-10 from {}'.format(out_path))
+    print(check_output(cmd).decode())
+    print('Done!')
+
 def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=10000):
+
+    # Download the raw CIFAR-10 data
+    if os.path.exists('./datasets/cifar10/cifar-10-batches-py/') == False:
+        download_CIFAR10()
+
     # Load the raw CIFAR-10 data
     cifar10_dir = './datasets/cifar10/cifar-10-batches-py/'
     X_train, y_train, X_test, y_test = load_CIFAR10(cifar10_dir)

@@ -97,7 +97,7 @@ def init():
         download_mnist()
         save_mnist()
 
-    MNIST(path.join('data', 'mnist'), download=True)
+    MNIST(path.join('datasets', 'mnist'), download=True)
 
 
 def load():
