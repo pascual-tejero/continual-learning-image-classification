@@ -1,0 +1,5 @@
+# Ignore contents of data folder
+data/*
+
+# Ignore contents of datasets folder
+datasets/*
