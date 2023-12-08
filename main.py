@@ -73,9 +73,9 @@ if __name__ == '__main__':
 
     # General parameters
     argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--batch_size', type=int, default=20)
     argparse.add_argument('--epochs', type=int, default=3)
     argparse.add_argument('--lr', type=float, default=0.001)
+    argparse.add_argument('--batch_size', type=int, default=20)
     argparse.add_argument('--num_tasks', type=int, default=4)
     # argparse.add_argument('--dataset', type=str, default="mnist")
     argparse.add_argument('--dataset', type=str, default="cifar100")
