@@ -69,7 +69,7 @@ def get_dataset_mnist(args):
     return datasets
 
 
-if __name__ == '__main__':
-    argparse = argparse.ArgumentParser()
-    argparse.add_argument('--dataset', type=str, default='mnist')
-    get_dataset_mnist(argparse.parse_args())
+# if __name__ == '__main__':
+#     argparse = argparse.ArgumentParser()
+#     argparse.add_argument('--dataset', type=str, default='mnist')
+#     get_dataset_mnist(argparse.parse_args())

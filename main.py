@@ -3,6 +3,8 @@ import torch
 import argparse
 import os 
 
+
+
 from utils.get_dataset_mnist import get_dataset_mnist
 from utils.get_dataset_cifar10 import get_dataset_cifar10
 from utils.get_dataset_cifar100 import get_dataset_cifar100
@@ -77,9 +79,9 @@ if __name__ == '__main__':
     argparse.add_argument('--lr', type=float, default=0.001)
     argparse.add_argument('--batch_size', type=int, default=20)
     argparse.add_argument('--num_tasks', type=int, default=4)
-    # argparse.add_argument('--dataset', type=str, default="mnist")
-    argparse.add_argument('--dataset', type=str, default="cifar100")
-    # argparse.add_argument('--dataset', type=str, default="cifar10")
+
+    # Dataset parameters: mnist, cifar10, cifar100
+    argparse.add_argument('--dataset', type=str, default="cifar10")
 
     # EWC parameters
     argparse.add_argument('--ewc_lambda' , type=float, default=5)

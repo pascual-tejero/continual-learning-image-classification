@@ -89,8 +89,8 @@ def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=10000, do
     y_test = y_test[mask]
 
     x_train = x_train.astype('float64')/np.max(x_train)
-    x_val = x_val.astype('float64')/np.max(x_train)
-    x_test = x_test.astype('float64')/np.max(x_train)
+    x_val = x_val.astype('float64')/np.max(x_val)
+    x_test = x_test.astype('float64')/np.max(x_test)
 
     x_train = x_train.reshape(-1, 3, img_rows, img_cols)
     x_val = x_val.reshape(-1, 3, img_rows, img_cols)
