@@ -13,7 +13,7 @@ from utils.save_training_results import save_training_results
 from models.net_mnist import Net_mnist
 from models.net_cifar10 import Net_cifar10
 
-def naive_training(datasets, args):
+def naive_training(datasets, args, joint_training=False):
     
     """
     In this function, we train the model using the naive approach, which is training the model on the first dataset
@@ -25,6 +25,21 @@ def naive_training(datasets, args):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+    if joint_training: # If we want to train the model on the joint dataset
+        joint_dataset = []
+
+        train_dataset, val_dataset, test_dataset = datasets[0] # Get the images and labels from the task
+
+        if len(datasets) > 1: # If there are more than one task
+            for i in range(1,len(datasets)): # For each task
+                train_dataset_i, val_dataset_i, test_dataset_i = datasets[i] # Get the images and labels from the task
+                train_dataset = torch.utils.data.ConcatDataset([train_dataset, train_dataset_i]) # Concatenate the datasets
+                val_dataset = torch.utils.data.ConcatDataset([val_dataset, val_dataset_i]) # Concatenate the datasets
+                test_dataset = torch.utils.data.ConcatDataset([test_dataset, test_dataset_i]) # Concatenate the datasets
+
+        joint_dataset.append([train_dataset, val_dataset, test_dataset]) # Append the datasets to the joint dataset
+        datasets = joint_dataset # Set the datasets to the joint dataset
+ 
     # Create the excel file
     if args.dataset == "mnist":
         path_file = "./results/mnist/results_naive.xlsx"
@@ -34,7 +49,8 @@ def naive_training(datasets, args):
         path_file = "./results/cifar10/results_naive.xlsx"
         model = Net_cifar10().to(device) # Instantiate the model
     else:
-        pass
+        path_file = "./results/cifar10/results_naive.xlsx"
+        model = Net_cifar10().to(device) # Instantiate the model
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
 
@@ -44,7 +60,6 @@ def naive_training(datasets, args):
     if os.path.exists(path_file): # If the file exists
         os.remove(path_file) # Remove the file if it exists
     workbook = xlsxwriter.Workbook(path_file) # Create the excel file
-
 
     avg_acc_list = [] # List to save the average accuracy of each task
     
@@ -91,7 +106,7 @@ def naive_training(datasets, args):
                 avg_acc_list.append(avg_acc)
 
         # Save the results
-        save_training_results(dicc_results, workbook, task=id_task_dataset, training_name="naive")
+        # save_training_results(dicc_results, workbook, task=id_task_dataset, training_name="naive")
     
     # Close the excel file
     workbook.close()

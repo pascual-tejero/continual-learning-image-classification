@@ -20,7 +20,7 @@ class Net_cifar10(nn.Module):
         self.flatten = nn.Flatten()
         self.fc1 = nn.Linear(128 * 4 * 4, 512)
         self.relu4 = nn.ReLU()
-        self.fc2 = nn.Linear(512, 10)
+        self.fc2 = nn.Linear(512, 100)
 
     def forward(self, x):
         x = self.conv1(x)

@@ -1,18 +1,11 @@
 import torch
-import torch.nn as nn
-import torchvision.datasets as datasets
-import torchvision.transforms as transforms
-import torch.optim as optim
-import torch.nn.functional as F
-import numpy as np
-import matplotlib.pyplot as plt
 
 import argparse
-import xlsxwriter
 import os 
-import random
 
-from utils.get_datasets import get_datasets
+from utils.get_dataset_mnist import get_dataset_mnist
+from utils.get_dataset_cifar10 import get_dataset_cifar10
+from utils.get_dataset_cifar100 import get_dataset_cifar100
 from utils.save_global_results import save_global_results
 
 from methods.naive_training import naive_training
@@ -32,25 +25,33 @@ def main(args):
     :return: None
     """
     # Set the seed
-    seed = 0
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    torch.manual_seed(args.seed)
 
     # Create a dictionary to save the results
     dicc_avg_acc = {}
     
     # Get the dataloader
-    datasets = get_datasets(args)
-    quit()
-    # Train the model using the naive approach
-    dicc_avg_acc["Naive"] = naive_training(datasets, args)
+    if args.dataset == "mnist":
+        if os.path.exists('./results/mnist/') == False:
+            os.makedirs('./results/mnist/')
+        datasets = get_dataset_mnist(args)
+    elif args.dataset == "cifar10":
+        if os.path.exists('./results/cifar10/') == False:
+            os.makedirs('./results/cifar10/')
+        datasets = get_dataset_cifar10(args)
+    elif args.dataset == "cifar100":
+        if os.path.exists('./results/cifar100/') == False:
+            os.makedirs('./results/cifar100/')
+        datasets = get_dataset_cifar100(args)
+    
+    
+    # Train the model using the naive approach (no continual learning) for fine-tuning
+    dicc_avg_acc["Finetuning"] = naive_training(datasets, args)
 
-    # # Train the model using the rehearsal approach
+    # Train the model using the naive approach (no continual learning) for joint training
+    dicc_avg_acc["Joint training"] = naive_training(datasets, args, joint_training=True)
+
+    # Train the model using the rehearsal approach
     dicc_avg_acc["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1)
     dicc_avg_acc["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3)
     dicc_avg_acc["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5)
@@ -71,10 +72,13 @@ if __name__ == '__main__':
     argparse = argparse.ArgumentParser()
 
     # General parameters
-    argparse.add_argument('--batch_size', type=int, default=50)
-    argparse.add_argument('--epochs', type=int, default=20)
+    argparse.add_argument('--seed', type=int, default=0)
+    argparse.add_argument('--batch_size', type=int, default=20)
+    argparse.add_argument('--epochs', type=int, default=3)
     argparse.add_argument('--lr', type=float, default=0.001)
-    argparse.add_argument('--dataset', type=str, default="mnist")
+    argparse.add_argument('--num_tasks', type=int, default=4)
+    # argparse.add_argument('--dataset', type=str, default="mnist")
+    argparse.add_argument('--dataset', type=str, default="cifar100")
     # argparse.add_argument('--dataset', type=str, default="cifar10")
 
     # EWC parameters
