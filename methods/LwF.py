@@ -40,10 +40,6 @@ def lwf_training(datasets, args):
             os.remove(f'./models/lwf_{args.dataset}_aftertask_{i+1}.pth')
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
-
-    # Add a learning rate scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
-                                                gamma=args.scheduler_gamma)  
     
     if os.path.exists(path_file):
         os.remove(path_file)
@@ -52,6 +48,10 @@ def lwf_training(datasets, args):
     avg_acc_list = []
 
     for id_task_dataset, task in enumerate(datasets):
+
+        # Add a learning rate scheduler
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
+                                                gamma=args.scheduler_gamma)  
 
         dicc_results = {"Train task":[], "Train epoch": [], "Train loss":[], "Val loss":[],
                          "Test task":[], "Test loss":[], "Test accuracy":[], "Test average accuracy": []}
@@ -256,65 +256,3 @@ def test_epoch(model, device, datasets, args):
     return test_task_list, test_loss_list, test_acc_list, avg_acc
 
 
-# def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, args, scheduler):
-
-#     # Training
-#     model.train()
-
-#     train_loss_acc = 0 # Training loss
-#     distillation_loss_value = 0 # Distillation loss
-
-#     if id_task_dataset+1 > 1: # Apply LwF from the second task onward
-#         if args.dataset == "mnist":
-#             prev_model = Net_mnist().to(device)
-#         elif args.dataset == "cifar10":
-#             prev_model = Net_cifar10().to(device)
-#         elif args.dataset == "cifar100":
-#             prev_model = Net_cifar100().to(device)
-
-#         # Load the previous model
-#         prev_model.load_state_dict(torch.load(f'./models/lwf_{args.dataset}_aftertask_{id_task_dataset}.pth')) 
-    
-#     print(f"Training on task {id_task_dataset+1}...")
-
-
-#     for images, labels in train_loader:
-#         images = images.to(device)
-#         labels = labels.to(device)
-
-#         optimizer.zero_grad() # Clear the gradients
-
-#         outputs = model(images) # Forward pass
-
-#         train_loss = F.cross_entropy(outputs, labels) # Calculate the loss
-    
-#         # Distillation loss (LwF)
-#         if id_task_dataset+1 > 1:  # Apply LwF from the second task onward
-
-#             prev_model.eval() # Set the previous model to evaluation mode
-            
-#             with torch.no_grad():
-#                 prev_outputs = prev_model(images) # Forward pass with the previous model
-
-#                 distillation_loss = F.kl_div(F.log_softmax(outputs, dim=1), 
-#                                             F.softmax(prev_outputs, dim=1)) # Calculate the distillation loss
-#                 distillation_loss_value += distillation_loss.item() # Accumulate the distillation loss
-
-#                 train_loss += args.lwf_lambda * distillation_loss # Add the distillation loss to the training loss
-
-#         train_loss_acc += train_loss.item() # Accumulate the training loss
-#         train_loss.backward() # Backward pass
-#         optimizer.step() # Optimize
-
-#     scheduler.step() # Update the learning rate
-#     print(f"Epoch: {epoch+1}, Learning rate: {scheduler.get_last_lr()[0]}")
-
-
-#     train_loss_epoch = train_loss_acc/len(train_loader) # Training loss
-#     distillation_loss_value /= len(train_loader) # Distillation loss
-
-#     print(f"Trained on task {id_task_dataset+1} -> Epoch: {epoch+1}, Loss: {train_loss_epoch}")
-#     if id_task_dataset+1 > 1:
-#         print(f"Distillation loss: {distillation_loss_value} // Lambda: {args.lwf_lambda}")
-
-#     return train_loss_epoch

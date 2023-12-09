@@ -65,10 +65,6 @@ def naive_training(datasets, args, joint_training=False):
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
 
-    # Add a learning rate scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
-                                                gamma=args.scheduler_gamma)
-
     if os.path.exists(path_file): # If the file exists
         os.remove(path_file) # Remove the file if it exists
     workbook = xlsxwriter.Workbook(path_file) # Create the excel file
@@ -76,6 +72,11 @@ def naive_training(datasets, args, joint_training=False):
     avg_acc_list = [] # List to save the average accuracy of each task
     
     for id_task_dataset, task in enumerate(datasets):
+        
+        # Add a learning rate scheduler
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
+                                                gamma=args.scheduler_gamma)
+
         dicc_results = {"Train task":[], "Train epoch": [], "Train loss":[], "Val loss":[],
                          "Test task":[], "Test loss":[], "Test accuracy":[], "Test average accuracy": []}
         print("------------------------------------------")

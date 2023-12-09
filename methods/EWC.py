@@ -39,11 +39,7 @@ def ewc_training(datasets, args):
         path_file = "./results/cifar100/results_cifar100_ewc.xlsx"
         model = Net_cifar100().to(device) # Instantiate the model
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer    
-
-    # Add a learning rate scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
-                                                gamma=args.scheduler_gamma)   
+    optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
     
     if os.path.exists(path_file): # If the file exists
         os.remove(path_file) # Remove the file if it exists
@@ -55,6 +51,11 @@ def ewc_training(datasets, args):
     optpar_dict = {} # Dictionary to save the model parameters
 
     for id_task, task in enumerate(datasets):
+
+        # Add a learning rate scheduler
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
+                                                gamma=args.scheduler_gamma)  
+        
         dicc_results = {"Train task":[], "Train epoch": [], "Train loss":[], "Val loss":[],
                          "Test task":[], "Test loss":[], "Test accuracy":[], "Test average accuracy": []}
         print("------------------------------------------")
