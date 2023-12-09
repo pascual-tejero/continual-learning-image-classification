@@ -70,7 +70,7 @@ def lwf_training(datasets, args):
 
             train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, args, scheduler)
 
-            val_loss_epoch = val_epoch(model, device, val_loader, id_task_dataset, epoch)
+            val_loss_epoch = val_epoch(model, device, val_loader, id_task_dataset, epoch, args)
 
             test_task_list, test_loss_list, test_acc_list, avg_acc = test_epoch(model, device, datasets, args)
 
@@ -115,6 +115,7 @@ def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, 
 
         # Load the previous model
         prev_model.load_state_dict(torch.load(f'./models/lwf_{args.dataset}_aftertask_{id_task_dataset}.pth')) 
+        prev_model.eval() # Set the model to evaluation mode
     
     print(f"Training on task {id_task_dataset+1}...")
 
@@ -124,23 +125,18 @@ def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, 
 
         optimizer.zero_grad() # Clear the gradients
 
+        prev_outputs = None
+
         outputs = model(images) # Forward pass
 
-        train_loss = F.cross_entropy(outputs, labels) # Calculate the loss
-    
         # Distillation loss (LwF)
         if id_task_dataset+1 > 1:  # Apply LwF from the second task onward
+            prev_outputs = prev_model(images)
+        
+        # Calculate the loss
+        train_loss, distillation_loss = criterion(id_task_dataset, outputs, labels, prev_outputs, args) 
 
-            prev_model.eval() # Set the previous model to evaluation mode
-            
-            prev_outputs = prev_model(images) # Forward pass with the previous model
-
-            distillation_loss = F.kl_div(F.log_softmax(outputs, dim=1), 
-                                        F.softmax(prev_outputs, dim=1)) # Calculate the distillation loss
-            distillation_loss_value += distillation_loss.item() # Accumulate the distillation loss
-
-            train_loss += args.lwf_lambda * distillation_loss # Add the distillation loss to the training loss
-
+        distillation_loss_value += distillation_loss # Accumulate the distillation loss
         train_loss_acc += train_loss.item() # Accumulate the training loss
         train_loss.backward() # Backward pass
         optimizer.step() # Optimize
@@ -153,19 +149,30 @@ def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, 
     distillation_loss_value /= len(train_loader) # Distillation loss
 
     print(f"Trained on task {id_task_dataset+1} -> Epoch: {epoch+1}, Loss: {train_loss_epoch}")
-    if id_task_dataset+1 > 1:
-        print(f"Distillation loss: {distillation_loss_value} // Lambda: {args.lwf_lambda}")
+    print(f"Distillation loss: {distillation_loss_value} // Lambda: {args.lwf_lambda}")
 
     return train_loss_epoch
 
 
 
-def val_epoch(model, device, val_loader, id_task_dataset, epoch):
+def val_epoch(model, device, val_loader, id_task_dataset, epoch, args):
      
     # Validation
     model.eval() # Set the model to evaluation mode
 
     val_loss_epoch = 0 # Validation loss
+
+    if id_task_dataset+1 > 1: # Apply LwF from the second task onward
+        if args.dataset == "mnist":
+            prev_model = Net_mnist().to(device)
+        elif args.dataset == "cifar10":
+            prev_model = Net_cifar10().to(device)
+        elif args.dataset == "cifar100":
+            prev_model = Net_cifar100().to(device)
+
+        # Load the previous model
+        prev_model.load_state_dict(torch.load(f'./models/lwf_{args.dataset}_aftertask_{id_task_dataset}.pth')) 
+        prev_model.eval() # Set the model to evaluation mode
 
     with torch.no_grad():
         for images, labels in val_loader:
@@ -176,9 +183,16 @@ def val_epoch(model, device, val_loader, id_task_dataset, epoch):
             # Forward pass
             outputs = model(images)
 
+            prev_outputs = None
+
+            # Distillation loss (LwF)
+            if id_task_dataset+1 > 1:  # Apply LwF from the second task onward
+                prev_outputs = prev_model(images)
+
             # Calculate the loss
-            val_loss = F.cross_entropy(outputs, labels)
-            val_loss_epoch += val_loss.item()
+            val_loss, _ = criterion(id_task_dataset, outputs, labels, prev_outputs, args)
+
+            val_loss_epoch += val_loss.item() # Accumulate the validation loss
     
     val_loss_epoch /= len(val_loader) # Validation loss
 
@@ -256,3 +270,33 @@ def test_epoch(model, device, datasets, args):
     return test_task_list, test_loss_list, test_acc_list, avg_acc
 
 
+def criterion(id_task_dataset, outputs, labels, prev_outputs, args):
+    """
+    This function calculates the loss.
+    """
+    loss = 0
+    distillation_loss_value = 0
+
+    if id_task_dataset+1 > 1: # Apply LwF from the second task onward
+        loss += args.lwf_lambda * cross_entropy(outputs, prev_outputs, exp=1.0, size_average=True, eps=1e-5)
+        distillation_loss_value = loss.item()
+    loss += F.cross_entropy(outputs, labels)
+    return loss, distillation_loss_value
+
+def cross_entropy(outputs, targets, exp=1.0, size_average=True, eps=1e-5):
+
+    out = torch.nn.functional.softmax(outputs, dim=1)
+    tar = torch.nn.functional.softmax(targets, dim=1)
+
+    if exp != 1:
+        out = out.pow(exp)
+        out = out / out.sum(1).view(-1, 1).expand_as(out) 
+        tar = tar.pow(exp)
+        tar = tar / tar.sum(1).view(-1, 1).expand_as(tar)
+
+    out = out + eps / out.size(1)
+    out = out / out.sum(1).view(-1, 1).expand_as(out)
+    ce = -(tar * out.log()).sum(1)
+    if size_average:
+        ce = ce.mean()
+    return ce        

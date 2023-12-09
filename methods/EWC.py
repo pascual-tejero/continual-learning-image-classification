@@ -99,7 +99,7 @@ def ewc_training(datasets, args):
                 avg_acc_list.append(avg_acc)
         
         # Update the model with task-specific information
-        fisher_dict, optpar_dict = on_task_update(id_task, model, fisher_dict, optpar_dict)  
+        fisher_dict, optpar_dict = on_task_update(id_task, model, fisher_dict, optpar_dict, train_loader)  
 
         # Save the results
         save_training_results(dicc_results, workbook, task=id_task, training_name="EWC")
@@ -115,7 +115,7 @@ def train_epoch(model, device, train_loader, optimizer, id_task, fisher_dict, op
     # Training
     model.train() # Set the model to training mode
 
-    train_loss_acc = 0 # Training loss
+    total_train_loss = 0 # Training loss
     ce_train_loss = 0 # Cross-entropy training loss
     ewc_train_loss = 0 # EWC training loss
 
@@ -134,22 +134,30 @@ def train_epoch(model, device, train_loader, optimizer, id_task, fisher_dict, op
         train_loss = F.cross_entropy(outputs, labels)
         ce_train_loss += train_loss.item()
 
+        ewc_loss = 0 # EWC loss
+
         for task in range(id_task):
+            # print("task", task+1)
+            task = task+1
 
             for name, param in model.named_parameters():
-                # Fisher information for the parameter
-                fisher = fisher_dict[task][name]
+                if param.requires_grad:
+                    # Fisher information for the parameter
+                    fisher = fisher_dict[task][name]
+                    print(fisher)
 
-                # Previous parameter value
-                optpar = optpar_dict[task][name]
+                    # Previous parameter value
+                    optpar = optpar_dict[task][name]
 
-                # EWC loss is added to the original loss to prevent catastrophic forgetting.
-                # It penalizes changes in model parameters based on the Fisher information
-                # and previous parameter values
-                train_loss += (fisher * (optpar - param).pow(2)).sum() * args.ewc_lambda
-                ewc_train_loss += train_loss.item()
+                    # EWC loss is added to the original loss to prevent catastrophic forgetting.
+                    # It penalizes changes in model parameters based on the Fisher information
+                    # and previous parameter values
+                    ewc_loss += torch.sum(fisher * (optpar - param).pow(2))
 
-        train_loss_acc += train_loss.item() # Accumulate the training loss
+        ewc_train_loss += args.ewc_lambda * ewc_loss # Accumulate the EWC loss
+
+        train_loss += ewc_loss * args.ewc_lambda  # Add the EWC loss to the original loss
+        total_train_loss += train_loss.item() # Accumulate the training loss
 
         # Backward pass
         train_loss.backward()
@@ -160,7 +168,7 @@ def train_epoch(model, device, train_loader, optimizer, id_task, fisher_dict, op
     scheduler.step() # Update the learning rate
     print(f"Epoch: {epoch+1}, Learning rate: {scheduler.get_last_lr()[0]}")
 
-    train_loss_epoch = train_loss_acc/len(train_loader) # Training loss
+    train_loss_epoch = total_train_loss/len(train_loader) # Training loss
 
     # Print the metrics
     print(f"Trained on task {id_task+1} -> Epoch: {epoch+1}, Loss: {train_loss_epoch}")
@@ -169,20 +177,38 @@ def train_epoch(model, device, train_loader, optimizer, id_task, fisher_dict, op
 
     return train_loss_epoch
 
-def on_task_update(id_task, model, fisher_dict, optpar_dict):
+def on_task_update(id_task, model, fisher_dict, optpar_dict, train_loader):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     # Initialize dictionaries for Fisher information and model parameters
-    fisher_dict[id_task] = {}
-    optpar_dict[id_task] = {}
+    fisher_dict[id_task+1] = {}
+    optpar_dict[id_task+1] = {}
 
+    # Training
+    model.train() # Set the model to training mode
+    
     # Calculate Fisher information for model parameters
-    for name, param in model.named_parameters():
+    for images, labels in train_loader:
+        # Move tensors to the configured device
+        images = images.to(device)
+        labels = labels.to(device)
 
-        # Store a clone of the model's parameter data
-        optpar_dict[id_task][name] = param.data.clone()
+        # Forward pass
+        outputs = model(images)
 
-        # Calculate Fisher information (squared gradients) for each parameter
-        fisher_dict[id_task][name] = param.grad.data.clone().pow(2)
+        # Calculate the loss
+        loss = F.cross_entropy(outputs, labels)
 
+        # Backward pass
+        loss.backward()
+
+        # Calculate the Fisher information
+        for name, param in model.named_parameters():
+            if param.requires_grad:
+                optpar_dict[id_task+1][name] = param.data.clone()
+                fisher_dict[id_task+1][name] = param.grad.data.clone().pow(2)
+
+    print(f"Task {id_task+1} -> Fisher information calculated")
     return fisher_dict, optpar_dict
 
 
@@ -277,3 +303,117 @@ def test_epoch(model, device, datasets, args):
     print(f"Average accuracy: {avg_acc:.0f}%")
 
     return test_task_list, test_loss_list, test_acc_list, avg_acc
+
+
+
+
+
+def grid_search(datasets, args):
+    """
+    In this function, we perform a grid search to find the best hyperparameters for the EWC approach.
+    """
+
+    print("------------------------------------------")
+    print("Grid search on EWC approach...")
+
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Create the excel file
+    if args.dataset == "mnist":
+        path_file = "./results/mnist/results_mnist_ewc_grid_search.xlsx"
+        model = Net_mnist().to(device) # Instantiate the model
+
+    elif args.dataset == "cifar10":
+        path_file = "./results/cifar10/results_cifar10_ewc_grid_search.xlsx"
+        model = Net_cifar10().to(device) # Instantiate the model
+
+    elif args.dataset == "cifar100":
+        path_file = "./results/cifar100/results_cifar100_ewc_grid_search.xlsx"
+        model = Net_cifar100().to(device) # Instantiate the model
+    
+    if os.path.exists(path_file): # If the file exists
+        os.remove(path_file) # Remove the file if it exists
+    workbook = xlsxwriter.Workbook(path_file) # Create the excel file
+
+    # Create a dictionary to save the results
+    dicc_grid_search = {"Lambda":[], "Average accuracy": []}
+
+    # Grid search
+    for lambda_ in [0, 0.1, 0.3, 0.5, 0.7, 0.9, 1]:
+
+        args.ewc_lambda = lambda_ # Update the lambda value
+
+        avg_acc_list = [] # List to save the average accuracy of each task
+
+        fisher_dict = {} # Dictionary to save the Fisher information
+        optpar_dict = {} # Dictionary to save the model parameters
+
+        for id_task, task in enumerate(datasets):
+
+            optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
+
+            # Add a learning rate scheduler
+            scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
+                                                    gamma=args.scheduler_gamma)  
+            
+            dicc_results = {"Train task":[], "Train epoch": [], "Train loss":[], "Val loss":[],
+                            "Test task":[], "Test loss":[], "Test accuracy":[], "Test average accuracy": []}
+            print("------------------------------------------")
+
+            train_dataset, val_dataset, _ = task # Get the images and labels from the task
+
+            # Make the dataloader
+            train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                                    batch_size=args.batch_size,
+                                                    shuffle=True)
+            
+            val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
+                                                    batch_size=args.batch_size,
+                                                    shuffle=True)
+            
+            for epoch in range(args.epochs):
+                print("------------------------------------------")
+
+                # Training
+                train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task, 
+                                            fisher_dict, optpar_dict, epoch, args, scheduler)
+                
+                # Validation 
+                val_loss_epoch = val_epoch(model, device, val_loader, id_task, epoch)
+
+                # Test
+                test_task_list, test_loss_list, test_acc_list, avg_acc = test_epoch(model, device, datasets, args)
+
+
+                # Append the results to dicc_results
+                dicc_results["Train task"].append(id_task+1)
+                dicc_results["Train epoch"].append(epoch+1)
+                dicc_results["Train loss"].append(train_loss_epoch)
+                dicc_results["Val loss"].append(val_loss_epoch)
+                dicc_results["Test task"].append(test_task_list)
+                dicc_results["Test loss"].append(test_loss_list)
+                dicc_results["Test accuracy"].append(test_acc_list)
+                dicc_results["Test average accuracy"].append(avg_acc)
+                # print(dicc_results)
+
+                if epoch == args.epochs-1:
+                    avg_acc_list.append(avg_acc)
+
+            # Update the model with task-specific information
+            fisher_dict, optpar_dict = on_task_update(id_task, model, fisher_dict, optpar_dict, train_loader)
+
+            # Save the results
+            save_training_results(dicc_results, workbook, task=id_task, training_name="EWC")
+
+        # Calculate the average accuracy
+        avg_acc = sum(avg_acc_list)/len(avg_acc_list)
+
+        # Append the results to dicc_grid_search
+        dicc_grid_search["Lambda"].append(lambda_)
+        dicc_grid_search["Average accuracy"].append(avg_acc)
+
+        # Print the results
+        print(f"Lambda: {lambda_}, Average accuracy: {avg_acc}")
+
+    # Save the results
+    save_training_results(dicc_grid_search, workbook, training_name="EWC_grid_search")

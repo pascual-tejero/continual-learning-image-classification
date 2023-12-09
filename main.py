@@ -41,18 +41,18 @@ def main(args):
     elif args.dataset == "cifar100":
         datasets = get_dataset_cifar100(args)
         
-    # Train the model using the naive approach (no continual learning) for fine-tuning
-    dicc_avg_acc["Finetuning"] = naive_training(datasets, args)
+    # # Train the model using the naive approach (no continual learning) for fine-tuning
+    # dicc_avg_acc["Finetuning"] = naive_training(datasets, args)
 
-    # Train the model using the naive approach (no continual learning) for joint training
-    dicc_avg_acc["Joint training"] = naive_training(datasets, args, joint_training=True)
+    # # Train the model using the naive approach (no continual learning) for joint training
+    # dicc_avg_acc["Joint training"] = naive_training(datasets, args, joint_training=True)
 
-    # Train the model using the rehearsal approach
-    dicc_avg_acc["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
-    dicc_avg_acc["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
-    dicc_avg_acc["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
+    # # Train the model using the rehearsal approach
+    # dicc_avg_acc["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
+    # dicc_avg_acc["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
+    # dicc_avg_acc["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
 
-    # # Train the model using the EWC approach
+    # # # Train the model using the EWC approach
     dicc_avg_acc["EWC"] = ewc_training(datasets, args)
 
     # # Train the model using the LwF approach
@@ -72,21 +72,21 @@ if __name__ == '__main__':
 
     # General parameters
     argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--epochs', type=int, default=2)
+    argparse.add_argument('--epochs', type=int, default=1)
     argparse.add_argument('--lr', type=float, default=0.001)
     argparse.add_argument('--batch_size', type=int, default=20)
-    argparse.add_argument('--num_tasks', type=int, default=4)
+    argparse.add_argument('--num_tasks', type=int, default=2)
     argparse.add_argument('--scheduler_step_size', type=int, default=0.01)
     argparse.add_argument('--scheduler_gamma', type=float, default=0.1)
 
     # Dataset parameters: mnist, cifar10, cifar100
-    argparse.add_argument('--dataset', type=str, default="cifar10")
+    argparse.add_argument('--dataset', type=str, default="cifar100")
 
     # EWC parameters
-    argparse.add_argument('--ewc_lambda' , type=float, default=5)
+    argparse.add_argument('--ewc_lambda' , type=float, default=5000)
 
     # Distillation parameters
-    argparse.add_argument('--lwf_lambda' , type=float, default=10)
+    argparse.add_argument('--lwf_lambda' , type=float, default=0.1)
 
     # Run the main function
     main(argparse.parse_args())
