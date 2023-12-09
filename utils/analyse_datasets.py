@@ -1,7 +1,4 @@
-import torch
-import numpy as np
 
-from sklearn.datasets import fetch_openml
 import argparse
 
 def analyse_datasets(datasets, args):

@@ -12,6 +12,7 @@ from utils.save_training_results import save_training_results
 
 from models.net_mnist import Net_mnist
 from models.net_cifar10 import Net_cifar10
+from models.net_cifar100 import Net_cifar100
 
 def naive_training(datasets, args, joint_training=False):
     
@@ -42,15 +43,25 @@ def naive_training(datasets, args, joint_training=False):
  
     # Create the excel file
     if args.dataset == "mnist":
-        path_file = "./results/mnist/results_naive.xlsx"
+        if joint_training:
+            path_file = "./results/mnist/results_mnist_joint.xlsx"
+        else:
+            path_file = "./results/mnist/results_mnist_finetuning.xlsx"
         model = Net_mnist().to(device) # Instantiate the model
 
     elif args.dataset == "cifar10":
-        path_file = "./results/cifar10/results_naive.xlsx"
+        if joint_training:
+            path_file = "./results/cifar10/results_cifar10_joint.xlsx"
+        else:
+            path_file = "./results/cifar10/results_cifar10_finetuning.xlsx"
         model = Net_cifar10().to(device) # Instantiate the model
-    else:
-        path_file = "./results/cifar10/results_naive.xlsx"
-        model = Net_cifar10().to(device) # Instantiate the model
+        
+    elif args.dataset == "cifar100":
+        if joint_training:
+            path_file = "./results/cifar100/results_cifar10_joint.xlsx"
+        else:
+            path_file = "./results/cifar100/results_cifar100_finetuning.xlsx"
+        model = Net_cifar100().to(device) # Instantiate the model
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
 
@@ -106,7 +117,7 @@ def naive_training(datasets, args, joint_training=False):
                 avg_acc_list.append(avg_acc)
 
         # Save the results
-        # save_training_results(dicc_results, workbook, task=id_task_dataset, training_name="naive")
+        save_training_results(dicc_results, workbook, task=id_task_dataset, training_name="naive")
     
     # Close the excel file
     workbook.close()
@@ -209,8 +220,12 @@ def test_epoch(model, device, datasets, args):
         model.eval() # Set the model to evaluation mode
         with torch.no_grad():
             for images, labels in test_loader:
+                # Move tensors to the configured device
+                images = images.to(device)
+                labels = labels.to(device)
+
                 # Forward pass
-                outputs = model(images).to(device)
+                outputs = model(images)
 
                 # Calculate the loss
                 test_loss += F.cross_entropy(outputs, labels).item()

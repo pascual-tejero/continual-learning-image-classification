@@ -5,7 +5,6 @@ import argparse
 from utils.analyse_datasets import analyse_datasets
 from utils.load_cifar100 import get_CIFAR100_data
 
-import matplotlib.pyplot as plt
 
 
 def get_dataset_cifar100(args):

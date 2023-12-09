@@ -12,6 +12,7 @@ from utils.save_training_results import save_training_results
 
 from models.net_mnist import Net_mnist
 from models.net_cifar10 import Net_cifar10
+from models.net_cifar100 import Net_cifar100
 
 def ewc_training(datasets, args):
     
@@ -27,14 +28,16 @@ def ewc_training(datasets, args):
 
     # Create the excel file
     if args.dataset == "mnist":
-        path_file = "./results/mnist/results_EWC.xlsx"
+        path_file = "./results/mnist/results_mnist_ewc.xlsx"
         model = Net_mnist().to(device) # Instantiate the model
 
     elif args.dataset == "cifar10":
-        path_file = "./results/cifar10/results_EWC.xlsx"
+        path_file = "./results/cifar10/results_cifar10_ewc.xlsx"
         model = Net_cifar10().to(device) # Instantiate the model
-    else:
-        pass
+
+    elif args.dataset == "cifar100":
+        path_file = "./results/cifar100/results_cifar100_ewc.xlsx"
+        model = Net_cifar100().to(device) # Instantiate the model
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
     
@@ -94,7 +97,6 @@ def ewc_training(datasets, args):
         # Update the model with task-specific information
         on_task_update(id_task, model, fisher_dict, optpar_dict)  
 
-
         # Save the results
         save_training_results(dicc_results, workbook, task=id_task, training_name="EWC")
     
@@ -141,7 +143,7 @@ def train_epoch(model, device, train_loader, optimizer, id_task, fisher_dict, op
                 # It penalizes changes in model parameters based on the Fisher information
                 # and previous parameter values
                 train_loss += (fisher * (optpar - param).pow(2)).sum() * args.ewc_lambda
-                ewc_train_loss += (fisher * (optpar - param).pow(2)).sum() * args.ewc_lambda
+                ewc_train_loss += train_loss.item()
 
         train_loss_acc += train_loss.item() # Accumulate the training loss
 
@@ -229,8 +231,12 @@ def test_epoch(model, device, datasets, args):
         model.eval() # Set the model to evaluation mode
         with torch.no_grad():
             for images, labels in test_loader:
+                # Move tensors to the configured device
+                images = images.to(device)
+                labels = labels.to(device)
+
                 # Forward pass
-                outputs = model(images).to(device)
+                outputs = model(images)
 
                 # Calculate the loss
                 test_loss += F.cross_entropy(outputs, labels).item()

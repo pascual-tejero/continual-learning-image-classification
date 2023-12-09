@@ -11,6 +11,7 @@ from utils.save_training_results import save_training_results
 
 from models.net_mnist import Net_mnist
 from models.net_cifar10 import Net_cifar10
+from models.net_cifar100 import Net_cifar100
 
 def rehearsal_training(datasets, args, rehearsal_percentage):
     """
@@ -23,14 +24,15 @@ def rehearsal_training(datasets, args, rehearsal_percentage):
 
     # Create the excel file
     if args.dataset == "mnist":
-        path_file = f"./results/mnist/results_rehearsal_{rehearsal_percentage}.xlsx"
-        model = Net_mnist().to(device) # Instantiate the model
-
+        path_file = f"./results/mnist/results_mnist_rehearsal_{rehearsal_percentage}.xlsx"
+        model = Net_mnist().to(device) # Instantiate the mod
     elif args.dataset == "cifar10":
-        path_file = f"./results/cifar10/results_rehearsal_{rehearsal_percentage}.xlsx"
+        path_file = f"./results/cifar10/results_cifar10_rehearsal_{rehearsal_percentage}.xlsx"
         model = Net_cifar10().to(device) # Instantiate the model
-    else:
-        pass
+        
+    elif args.dataset == "cifar100":
+        path_file = f"./results/cifar100/results_cifar100_rehearsal_{rehearsal_percentage}.xlsx"
+        model = Net_cifar100().to(device) # Instantiate the model
 
     optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
 
@@ -223,8 +225,12 @@ def test_epoch(model, device, datasets, args):
         # Disable gradient calculation
         with torch.no_grad():
             for images, labels in test_loader:
+                # Move tensors to the configured device
+                images = images.to(device)
+                labels = labels.to(device)
+
                 # Forward pass
-                outputs = model(images).to(device)
+                outputs = model(images)
 
                 # Calculate the loss
                 test_loss += F.cross_entropy(outputs, labels).item()

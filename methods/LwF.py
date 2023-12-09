@@ -12,6 +12,7 @@ from utils.save_training_results import save_training_results
 
 from models.net_mnist import Net_mnist
 from models.net_cifar10 import Net_cifar10
+from models.net_cifar100 import Net_cifar100
 
 def lwf_training(datasets, args):
     
@@ -22,14 +23,16 @@ def lwf_training(datasets, args):
 
     # Create the excel file
     if args.dataset == "mnist":
-        path_file = "./results/mnist/results_LwF.xlsx"
+        path_file = "./results/mnist/results_mnist_lwf.xlsx"
         model = Net_mnist().to(device) # Instantiate the model
 
     elif args.dataset == "cifar10":
-        path_file = "./results/cifar10/results_LwF.xlsx"
+        path_file = "./results/cifar10/results_cifar10_lwf.xlsx"
         model = Net_cifar10().to(device) # Instantiate the model
-    else:
-        pass
+        
+    elif args.dataset == "cifar100":
+        path_file = "./results/cifar100/results_cifar100_lwf.xlsx"
+        model = Net_cifar100().to(device) # Instantiate the model
 
     # Remove previous models saved if they exist
     for i in range(len(datasets)):
@@ -81,7 +84,7 @@ def lwf_training(datasets, args):
             if epoch == args.epochs-1:
                 avg_acc_list.append(avg_acc)
             
-        # Save the model+
+        # Save the model
         if id_task_dataset+1 < len(datasets):
             torch.save(model.state_dict(), f'./models/lwf_{args.dataset}_task_{id_task_dataset+1}.pth')
 
@@ -115,6 +118,8 @@ def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, 
                 prev_model = Net_mnist().to(device)
             elif args.dataset == "cifar10":
                 prev_model = Net_cifar10().to(device)
+            elif args.dataset == "cifar100":
+                prev_model = Net_cifar100().to(device)
             prev_model.load_state_dict(torch.load(f'./models/lwf_{args.dataset}_task_{id_task_dataset}.pth'))  # Load the saved model
             prev_model.eval() # Set the model to evaluation mode
             prev_outputs = prev_model(images) # Forward pass
@@ -191,8 +196,12 @@ def test_epoch(model, device, datasets, args):
         # Disable gradient calculation
         with torch.no_grad():
             for images, labels in test_loader:
+                # Move tensors to the configured device
+                images = images.to(device)
+                labels = labels.to(device)
+
                 # Forward pass
-                outputs = model(images).to(device)
+                outputs = model(images)
 
                 # Calculate the loss
                 test_loss += F.cross_entropy(outputs, labels).item()

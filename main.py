@@ -53,15 +53,15 @@ def main(args):
     # Train the model using the naive approach (no continual learning) for joint training
     dicc_avg_acc["Joint training"] = naive_training(datasets, args, joint_training=True)
 
-    # Train the model using the rehearsal approach
+    # # Train the model using the rehearsal approach
     dicc_avg_acc["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1)
     dicc_avg_acc["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3)
     dicc_avg_acc["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5)
 
-    # # Train the model using the EWC approach
+    # # # Train the model using the EWC approach
     dicc_avg_acc["EWC"] = ewc_training(datasets, args)
 
-    # Train the model using the LwF approach
+    # # Train the model using the LwF approach
     dicc_avg_acc["LwF"] = lwf_training(datasets, args)
 
     # Save the results

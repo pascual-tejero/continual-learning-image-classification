@@ -1,8 +1,5 @@
-import pandas as pd
 import numpy as np
-import math
-import timeit
-import matplotlib.pyplot as plt
+
 from six.moves import cPickle as pickle
 import os
 import platform
