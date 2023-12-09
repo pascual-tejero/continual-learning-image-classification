@@ -38,8 +38,6 @@ def lwf_training(datasets, args):
     for i in range(len(datasets)):
         if os.path.exists(f'./models/lwf_{args.dataset}_aftertask_{i+1}.pth'):
             os.remove(f'./models/lwf_{args.dataset}_aftertask_{i+1}.pth')
-
-    optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
     
     if os.path.exists(path_file):
         os.remove(path_file)
@@ -48,6 +46,8 @@ def lwf_training(datasets, args):
     avg_acc_list = []
 
     for id_task_dataset, task in enumerate(datasets):
+
+        optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
 
         # Add a learning rate scheduler
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 

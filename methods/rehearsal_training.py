@@ -34,8 +34,6 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
         path_file = f"./results/cifar100/results_cifar100_rehearsal_{rehearsal_percentage}.xlsx"
         model = Net_cifar100().to(device) # Instantiate the model
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer  
-
     if os.path.exists(path_file):  # If the file exists
         os.remove(path_file)  # Remove the file if it exists
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
@@ -43,6 +41,8 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
     avg_acc_list = []  # List to save the average accuracy of each task
 
     for id_task_dataset, task in enumerate(datasets):
+
+        optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer  
         
         # Add a learning rate scheduler
         scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 

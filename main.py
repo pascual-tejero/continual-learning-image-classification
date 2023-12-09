@@ -32,35 +32,15 @@ def main(args):
     # Create a dictionary to save the results
     dicc_avg_acc = {}
     
-    # # Get the dataloader
-    # if args.dataset == "mnist":
-    #     if os.path.exists('./results/mnist/') == False:
-    #         os.makedirs('./results/mnist/')
-    #     datasets = get_dataset_mnist(args)
-    # elif args.dataset == "cifar10":
-    #     if os.path.exists('./results/cifar10/') == False:
-    #         os.makedirs('./results/cifar10/')
-    #     datasets = get_dataset_cifar10(args)
-    # elif args.dataset == "cifar100":
-    #     if os.path.exists('./results/cifar100/') == False:
-    #         os.makedirs('./results/cifar100/')
-    #     datasets = get_dataset_cifar100(args)
-    
-        # Get the dataloader
+    # Get the dataloader
+    os.makedirs(f'./results/{args.dataset}', exist_ok=True)
     if args.dataset == "mnist":
-        if os.path.exists('./results/mnist_test/') == False:
-            os.makedirs('./results/mnist_test/')
         datasets = get_dataset_mnist(args)
     elif args.dataset == "cifar10":
-        if os.path.exists('./results/cifar10_test/') == False:
-            os.makedirs('./results/cifar10_test/')
         datasets = get_dataset_cifar10(args)
     elif args.dataset == "cifar100":
-        if os.path.exists('./results/cifar100_test/') == False:
-            os.makedirs('./results/cifar100_test/')
         datasets = get_dataset_cifar100(args)
-    
-    
+        
     # Train the model using the naive approach (no continual learning) for fine-tuning
     dicc_avg_acc["Finetuning"] = naive_training(datasets, args)
 
@@ -80,9 +60,12 @@ def main(args):
 
     # Save the results
     save_global_results(dicc_avg_acc, args)
-    
 
-    
+    # Create a .txt with the arguments
+    with open(f'./results/{args.dataset}/arguments_{args.dataset}.txt', 'w') as f:
+        for key, value in vars(args).items():
+            f.write(f'{key} : {value}\n')
+               
 
 if __name__ == '__main__':
     argparse = argparse.ArgumentParser()
