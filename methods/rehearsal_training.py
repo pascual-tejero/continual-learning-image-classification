@@ -13,12 +13,12 @@ from models.net_mnist import Net_mnist
 from models.net_cifar10 import Net_cifar10
 from models.net_cifar100 import Net_cifar100
 
-def rehearsal_training(datasets, args, rehearsal_percentage):
+def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=False):
     """
     In this function, we train the model using the rehearsal approach, which includes rehearsal of previous tasks.
     """
     print("------------------------------------------")
-    print(f"Training with rehearsal approach with rehearsal percentage: {rehearsal_percentage}...")
+    print(f"Training with rehearsal approach with rehearsal percentage: {rehearsal_percentage*100}%...")
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -34,7 +34,11 @@ def rehearsal_training(datasets, args, rehearsal_percentage):
         path_file = f"./results/cifar100/results_cifar100_rehearsal_{rehearsal_percentage}.xlsx"
         model = Net_cifar100().to(device) # Instantiate the model
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
+    optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer  
+
+    # Add a learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
+                                                gamma=args.scheduler_gamma)   
 
     if os.path.exists(path_file):  # If the file exists
         os.remove(path_file)  # Remove the file if it exists
@@ -47,26 +51,21 @@ def rehearsal_training(datasets, args, rehearsal_percentage):
                          "Test task":[], "Test loss":[], "Test accuracy":[], "Test average accuracy": []}
         print("------------------------------------------")
 
-        train_dataset, val_dataset, _ = task  # Get the images and labels from the task
-
         # Implement rehearsal by combining previous task data with the current task data
         if id_task_dataset > 0:
             # Make the dataloader for the rehearsal data
-            rehearsal_data_train, rehearsal_data_val = combine_rehearsal_data(datasets[:id_task_dataset+1], rehearsal_percentage)
-
-            # Make the dataloader for the current task
-            train_loader = torch.utils.data.DataLoader(dataset=rehearsal_data_train,
-                                                    batch_size=args.batch_size,
-                                                    shuffle=True)
-            val_loader = torch.utils.data.DataLoader(dataset=rehearsal_data_val,
-                                        batch_size=args.batch_size,
-                                        shuffle=True)
+            rehearsal_data_train, rehearsal_data_val = add_previous_datasets_to_current_dataset(datasets, 
+                                                                                                id_task_dataset, 
+                                                                                                rehearsal_percentage, 
+                                                                                                random_rehearsal=True)
         else:
-            # Make the dataloader for the current task
-            train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+            rehearsal_data_train, rehearsal_data_val, _ = task  # Get the images and labels from the task
+
+        train_loader = torch.utils.data.DataLoader(dataset=rehearsal_data_train,
                                                     batch_size=args.batch_size,
                                                     shuffle=True)
-            val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
+        
+        val_loader = torch.utils.data.DataLoader(dataset=rehearsal_data_val,
                                                     batch_size=args.batch_size,
                                                     shuffle=True)
 
@@ -74,7 +73,7 @@ def rehearsal_training(datasets, args, rehearsal_percentage):
             print("------------------------------------------")
 
             # Training
-            train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch)
+            train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, scheduler)
 
             # Validation
             val_loss_epoch = val_epoch(model, device, val_loader, id_task_dataset, epoch)
@@ -105,38 +104,48 @@ def rehearsal_training(datasets, args, rehearsal_percentage):
     return avg_acc_list
 
 
-def combine_rehearsal_data(datasets, rehearsal_percentage):
+def add_previous_datasets_to_current_dataset(datasets, id_task_dataset, rehearsal_percentage, random_rehearsal=True):
     """
-    Combine the data from previous tasks with the current task data (which is the last dataset in the list of datasets)
-    
+    Add the previous datasets (lower ids) to the current dataset (higher id) to perform rehearsal.
     """
-    last_idx_dataset = len(datasets) - 1 # We get the index of the last dataset in the list to know
+    previous_datasets = datasets[:id_task_dataset] # Get the previous datasets
 
-    combined_data_train = torch.tensor([]) # Initialize the tensor to save the combined data for training
-    combined_data_val = torch.tensor([]) # Initialize the tensor to save the combined data for validation
+    current_dataset = datasets[id_task_dataset] # Get the current dataset
+    rehearsal_data_train = current_dataset[0] # Get the training data from the current dataset
+    rehearsal_data_val = current_dataset[1] # Get the validation data from the current dataset
 
-    for idx, (train_set, val_set, _) in enumerate(datasets): # Iterate over the datasets
-        if idx != last_idx_dataset: # If the dataset is not the last one
-            num_samples_train = int(len(train_set) * rehearsal_percentage) # Get the number of samples to rehearse
-            subset_data_train = torch.utils.data.Subset(train_set, torch.arange(num_samples_train)) # Get the subset of data to rehearse
- 
-            num_samples_val = int(len(val_set) * rehearsal_percentage) # Get the number of samples to rehearse
-            subset_data_val = torch.utils.data.Subset(val_set, torch.arange(num_samples_val)) # Get the subset of data to rehearse
-        else:
-            subset_data_train = train_set # If the dataset is the last one, then we don't rehearse
-            subset_data_val = val_set # If the dataset is the last one, then we don't rehearse
- 
-        combined_data_train = torch.utils.data.ConcatDataset([combined_data_train, subset_data_train]) # Concatenate the data
-        combined_data_val = torch.utils.data.ConcatDataset([combined_data_val, subset_data_val]) # Concatenate the data
- 
-    print(f"Combined rehearsal data: {len(combined_data_train)} training samples data and {len(combined_data_val)} validation samples")
+    for (train_set, val_set, _) in previous_datasets: # Iterate over the previous datasets
+        num_samples_train = int(len(train_set) * rehearsal_percentage) # Get the number of samples to rehearse
+        num_samples_val = int(len(val_set) * rehearsal_percentage) # Get the number of samples to rehearse
+
+        if random_rehearsal: # If we want to rehearse randomly
+
+            # Get the subset of data to rehearse
+            subset_data_train = torch.utils.data.Subset(train_set, 
+                                                        torch.randperm(len(train_set))[:num_samples_train]) 
+            
+            # Get the subset of data to rehearse
+            subset_data_val = torch.utils.data.Subset(val_set, 
+                                                      torch.randperm(len(val_set))[:num_samples_val])
+
+        else: # If we want to rehearse sequentially
+
+            # Get the subset of data to rehearse
+            subset_data_train = torch.utils.data.Subset(train_set, torch.arange(num_samples_train))
+            # Get the subset of data to rehearse
+            subset_data_val = torch.utils.data.Subset(val_set, torch.arange(num_samples_val)) 
+
+        rehearsal_data_train = torch.utils.data.ConcatDataset([rehearsal_data_train, subset_data_train]) # Concatenate the data
+        rehearsal_data_val = torch.utils.data.ConcatDataset([rehearsal_data_val, subset_data_val]) # Concatenate the data
+
+    print(f"Rehearsal data: {len(rehearsal_data_train)} training samples data and "
+            f"{len(rehearsal_data_val)} validation samples")
     
-    return combined_data_train, combined_data_val
+    return rehearsal_data_train, rehearsal_data_val
+    
 
 
-
-
-def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch):
+def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, scheduler):
 
     model.train()  # Set the model to training mode
 
@@ -164,6 +173,9 @@ def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch):
         # Optimize
         optimizer.step()
     
+    scheduler.step() # Update the learning rate
+    print(f"Epoch: {epoch+1}, Learning rate: {scheduler.get_last_lr()[0]}")
+
     train_loss_epoch = train_loss_acc/len(train_loader) # Training loss
 
     # Print the metrics

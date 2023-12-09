@@ -32,18 +32,32 @@ def main(args):
     # Create a dictionary to save the results
     dicc_avg_acc = {}
     
-    # Get the dataloader
+    # # Get the dataloader
+    # if args.dataset == "mnist":
+    #     if os.path.exists('./results/mnist/') == False:
+    #         os.makedirs('./results/mnist/')
+    #     datasets = get_dataset_mnist(args)
+    # elif args.dataset == "cifar10":
+    #     if os.path.exists('./results/cifar10/') == False:
+    #         os.makedirs('./results/cifar10/')
+    #     datasets = get_dataset_cifar10(args)
+    # elif args.dataset == "cifar100":
+    #     if os.path.exists('./results/cifar100/') == False:
+    #         os.makedirs('./results/cifar100/')
+    #     datasets = get_dataset_cifar100(args)
+    
+        # Get the dataloader
     if args.dataset == "mnist":
-        if os.path.exists('./results/mnist/') == False:
-            os.makedirs('./results/mnist/')
+        if os.path.exists('./results/mnist_test/') == False:
+            os.makedirs('./results/mnist_test/')
         datasets = get_dataset_mnist(args)
     elif args.dataset == "cifar10":
-        if os.path.exists('./results/cifar10/') == False:
-            os.makedirs('./results/cifar10/')
+        if os.path.exists('./results/cifar10_test/') == False:
+            os.makedirs('./results/cifar10_test/')
         datasets = get_dataset_cifar10(args)
     elif args.dataset == "cifar100":
-        if os.path.exists('./results/cifar100/') == False:
-            os.makedirs('./results/cifar100/')
+        if os.path.exists('./results/cifar100_test/') == False:
+            os.makedirs('./results/cifar100_test/')
         datasets = get_dataset_cifar100(args)
     
     
@@ -53,12 +67,12 @@ def main(args):
     # Train the model using the naive approach (no continual learning) for joint training
     dicc_avg_acc["Joint training"] = naive_training(datasets, args, joint_training=True)
 
-    # # Train the model using the rehearsal approach
-    dicc_avg_acc["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1)
-    dicc_avg_acc["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3)
-    dicc_avg_acc["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5)
+    # Train the model using the rehearsal approach
+    dicc_avg_acc["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
+    dicc_avg_acc["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
+    dicc_avg_acc["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
 
-    # # # Train the model using the EWC approach
+    # # Train the model using the EWC approach
     dicc_avg_acc["EWC"] = ewc_training(datasets, args)
 
     # # Train the model using the LwF approach
@@ -75,10 +89,12 @@ if __name__ == '__main__':
 
     # General parameters
     argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--epochs', type=int, default=3)
+    argparse.add_argument('--epochs', type=int, default=2)
     argparse.add_argument('--lr', type=float, default=0.001)
     argparse.add_argument('--batch_size', type=int, default=20)
     argparse.add_argument('--num_tasks', type=int, default=4)
+    argparse.add_argument('--scheduler_step_size', type=int, default=0.01)
+    argparse.add_argument('--scheduler_gamma', type=float, default=0.1)
 
     # Dataset parameters: mnist, cifar10, cifar100
     argparse.add_argument('--dataset', type=str, default="cifar10")
@@ -87,7 +103,7 @@ if __name__ == '__main__':
     argparse.add_argument('--ewc_lambda' , type=float, default=5)
 
     # Distillation parameters
-    argparse.add_argument('--lwf_lambda' , type=float, default=5)
+    argparse.add_argument('--lwf_lambda' , type=float, default=10)
 
     # Run the main function
     main(argparse.parse_args())

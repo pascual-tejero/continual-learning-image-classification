@@ -52,7 +52,7 @@ def get_dataset_mnist(args):
     test_labels_2 = torch.tensor(np.array(test_flabels), dtype=torch.int64)
 
     # Create the datasets
-    train_dataset_1 = torch.utils.data.TensorDataset(train_images_1, train_labels_1)
+    train_dataset_1 = torch.utils.data.TensorDataset(train_images_1, train_labels_1, )
     val_dataset_1 = torch.utils.data.TensorDataset(val_images_1, val_labels_1)
     test_dataset_1 = torch.utils.data.TensorDataset(test_images_1, test_labels_1)
 

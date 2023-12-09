@@ -39,7 +39,11 @@ def ewc_training(datasets, args):
         path_file = "./results/cifar100/results_cifar100_ewc.xlsx"
         model = Net_cifar100().to(device) # Instantiate the model
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
+    optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer    
+
+    # Add a learning rate scheduler
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
+                                                gamma=args.scheduler_gamma)   
     
     if os.path.exists(path_file): # If the file exists
         os.remove(path_file) # Remove the file if it exists
@@ -47,8 +51,8 @@ def ewc_training(datasets, args):
 
     avg_acc_list = [] # List to save the average accuracy of each task
 
-    fisher_dict = {}
-    optpar_dict = {}
+    fisher_dict = {} # Dictionary to save the Fisher information
+    optpar_dict = {} # Dictionary to save the model parameters
 
     for id_task, task in enumerate(datasets):
         dicc_results = {"Train task":[], "Train epoch": [], "Train loss":[], "Val loss":[],
@@ -70,9 +74,8 @@ def ewc_training(datasets, args):
 
             # Training
             train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task, 
-                                           fisher_dict, optpar_dict, epoch, args)
+                                           fisher_dict, optpar_dict, epoch, args, scheduler)
             
-
             # Validation 
             val_loss_epoch = val_epoch(model, device, val_loader, id_task, epoch)
 
@@ -95,7 +98,7 @@ def ewc_training(datasets, args):
                 avg_acc_list.append(avg_acc)
         
         # Update the model with task-specific information
-        on_task_update(id_task, model, fisher_dict, optpar_dict)  
+        fisher_dict, optpar_dict = on_task_update(id_task, model, fisher_dict, optpar_dict)  
 
         # Save the results
         save_training_results(dicc_results, workbook, task=id_task, training_name="EWC")
@@ -106,7 +109,7 @@ def ewc_training(datasets, args):
     return avg_acc_list
 
 
-def train_epoch(model, device, train_loader, optimizer, id_task, fisher_dict, optpar_dict, epoch, args):
+def train_epoch(model, device, train_loader, optimizer, id_task, fisher_dict, optpar_dict, epoch, args, scheduler):
 
     # Training
     model.train() # Set the model to training mode
@@ -152,13 +155,16 @@ def train_epoch(model, device, train_loader, optimizer, id_task, fisher_dict, op
 
         # Optimize
         optimizer.step()
+    
+    scheduler.step() # Update the learning rate
+    print(f"Epoch: {epoch+1}, Learning rate: {scheduler.get_last_lr()[0]}")
 
     train_loss_epoch = train_loss_acc/len(train_loader) # Training loss
 
     # Print the metrics
     print(f"Trained on task {id_task+1} -> Epoch: {epoch+1}, Loss: {train_loss_epoch}")
     print(f"Cross-entropy loss: {ce_train_loss/len(train_loader)}")
-    print(f"EWC loss: {ewc_train_loss/len(train_loader)}")
+    print(f"EWC loss: {ewc_train_loss/len(train_loader)} // Lambda: {args.ewc_lambda}")
 
     return train_loss_epoch
 
@@ -175,6 +181,8 @@ def on_task_update(id_task, model, fisher_dict, optpar_dict):
 
         # Calculate Fisher information (squared gradients) for each parameter
         fisher_dict[id_task][name] = param.grad.data.clone().pow(2)
+
+    return fisher_dict, optpar_dict
 
 
 def val_epoch(model, device, val_loader, id_task, epoch):

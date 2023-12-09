@@ -3,3 +3,6 @@ data/*
 
 # Ignore contents of datasets folder
 datasets/*
+
+# Ignore __pycache__ folders
+__pycache__/

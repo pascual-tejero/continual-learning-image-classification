@@ -66,7 +66,8 @@ def naive_training(datasets, args, joint_training=False):
     optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer     
 
     # Add a learning rate scheduler
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
+                                                gamma=args.scheduler_gamma)
 
     if os.path.exists(path_file): # If the file exists
         os.remove(path_file) # Remove the file if it exists
@@ -74,7 +75,6 @@ def naive_training(datasets, args, joint_training=False):
 
     avg_acc_list = [] # List to save the average accuracy of each task
     
-
     for id_task_dataset, task in enumerate(datasets):
         dicc_results = {"Train task":[], "Train epoch": [], "Train loss":[], "Val loss":[],
                          "Test task":[], "Test loss":[], "Test accuracy":[], "Test average accuracy": []}
@@ -94,7 +94,7 @@ def naive_training(datasets, args, joint_training=False):
             print("------------------------------------------")
 
             # Training
-            train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch)
+            train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, scheduler)
 
             # Validation 
             val_loss_epoch = val_epoch(model, device, val_loader, id_task_dataset, epoch)
@@ -125,7 +125,7 @@ def naive_training(datasets, args, joint_training=False):
     return avg_acc_list
 
 
-def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch):
+def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, scheduler):
 
     # Training
     model.train() # Set the model to training mode
@@ -153,8 +153,9 @@ def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch):
         # Optimize
         optimizer.step()
 
-        # lr_scheduler
-        # scheduler.step()
+    scheduler.step() # Update the learning rate
+
+    print(f"Epoch: {epoch+1}, Learning rate: {scheduler.get_last_lr()[0]}")
 
     train_loss_epoch = train_loss_acc/len(train_loader) # Training loss
 
