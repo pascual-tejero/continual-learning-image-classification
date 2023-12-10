@@ -5,9 +5,11 @@ import torch.optim as optim
 import xlsxwriter
 import os
 import sys
-sys.path.append('../')
+import copy
 
+sys.path.append('../')
 from utils.save_training_results import save_training_results
+from utils.utils import save_model
 
 from models.net_mnist import Net_mnist
 from models.net_cifar10 import Net_cifar10
@@ -24,30 +26,27 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
 
     # Create the excel file
     if args.dataset == "mnist":
-        path_file = f"./results/mnist/results_mnist_rehearsal_{rehearsal_percentage}.xlsx"
         model = Net_mnist().to(device) # Instantiate the mod
     elif args.dataset == "cifar10":
-        path_file = f"./results/cifar10/results_cifar10_rehearsal_{rehearsal_percentage}.xlsx"
         model = Net_cifar10().to(device) # Instantiate the model
-        
     elif args.dataset == "cifar100":
-        path_file = f"./results/cifar100/results_cifar100_rehearsal_{rehearsal_percentage}.xlsx"
         model = Net_cifar100().to(device) # Instantiate the model
 
-    if os.path.exists(path_file):  # If the file exists
-        os.remove(path_file)  # Remove the file if it exists
+    path_file = f"./results/{args.exp_name}/results_rehearsal_{rehearsal_percentage}_{args.dataset}.xlsx"
+
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
 
     avg_acc_list = []  # List to save the average accuracy of each task
 
     for id_task_dataset, task in enumerate(datasets):
 
+        patience = args.lr_patience # Patience for early stopping
+        lr = args.lr # Learning rate
+        best_val_loss = 1e20 # Validation loss of the previous epoch
+        model_best = copy.deepcopy(model) # Save the best model so far
+
         optimizer = optim.Adam(model.parameters(), lr=args.lr) # Instantiate the optimizer  
-        
-        # Add a learning rate scheduler
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.scheduler_step_size, 
-                                                gamma=args.scheduler_gamma)
-        
+               
         dicc_results = {"Train task":[], "Train epoch": [], "Train loss":[], "Val loss":[],
                          "Test task":[], "Test loss":[], "Test accuracy":[], "Test average accuracy": []}
         print("------------------------------------------")
@@ -74,7 +73,7 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
             print("------------------------------------------")
 
             # Training
-            train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, scheduler)
+            train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch)
 
             # Validation
             val_loss_epoch = val_epoch(model, device, val_loader, id_task_dataset, epoch)
@@ -91,13 +90,40 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
             dicc_results["Test loss"].append(test_loss_list)
             dicc_results["Test accuracy"].append(test_acc_list)
             dicc_results["Test average accuracy"].append(avg_acc)
-            # print(dicc_results)
 
+            # Save the results of the epoch
             if epoch == args.epochs-1:
                 avg_acc_list.append(avg_acc)
 
-        # Save the results
-        save_training_results(dicc_results, workbook, task=id_task_dataset, training_name="rehearsal")
+            # Early stopping
+            if val_loss_epoch < best_val_loss:
+                best_val_loss = val_loss_epoch
+                patience = args.lr_patience
+                model_best = copy.deepcopy(model)
+            else:
+                # if the loss does not go down, decrease patience
+                patience -= 1
+                if patience <= 0:
+                    # if it runs out of patience, reduce the learning rate
+                    lr /= args.lr_decay
+                    print(' lr={:.1e}'.format(lr), end='')
+                    if lr < args.lr_min:
+                        # if the lr decreases below minimum, stop the training session
+                        print()
+                        avg_acc_list.append(avg_acc) # Append the average accuracy of the task
+                        break
+                    # reset patience and recover best model so far to continue training
+                    patience = args.lr_patience
+                    optimizer.param_groups[0]['lr'] = lr
+                    model.load_state_dict(model_best.state_dict())
+            
+            print(f"Learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
+
+        # Save the results of the task
+        save_training_results(dicc_results, workbook, task=id_task_dataset, training_name=f"rehearsal_{rehearsal_percentage}")
+
+        # Save the best model after each task
+        save_model(model_best, args, id_task_dataset+1, task=f"rehearsal_{rehearsal_percentage}")
 
     # Close the excel file
     workbook.close()
@@ -146,7 +172,7 @@ def add_previous_datasets_to_current_dataset(datasets, id_task_dataset, rehearsa
     
 
 
-def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, scheduler):
+def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch):
 
     model.train()  # Set the model to training mode
 
@@ -174,8 +200,7 @@ def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch, 
         # Optimize
         optimizer.step()
     
-    scheduler.step() # Update the learning rate
-    print(f"Epoch: {epoch+1}, Learning rate: {scheduler.get_last_lr()[0]}")
+    print(f"Epoch: {epoch+1}, Learning rate: {optimizer.param_groups[0]['lr']}")
 
     train_loss_epoch = train_loss_acc/len(train_loader) # Training loss
 

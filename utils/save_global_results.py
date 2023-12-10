@@ -8,12 +8,7 @@ def save_global_results(dicc_avg_acc, args):
     
     """
     # Path to save the results
-    if args.dataset == "mnist":
-        path_file = f"./results/mnist/global_results_mnist.xlsx"
-    elif args.dataset == "cifar10":
-        path_file = f"./results/cifar10/global_results_cifar10.xlsx"
-    elif args.dataset == "cifar100":
-        path_file = f"./results/cifar100/global_results_cifar100.xlsx"
+    path_file = f'./results/{args.exp_name}/global_results_{args.dataset}.xlsx'
 
     if os.path.exists(path_file):  # If the file exists
         os.remove(path_file)  # Remove the file if it exists
