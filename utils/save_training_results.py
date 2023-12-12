@@ -1,13 +1,13 @@
 import xlsxwriter
 import os
 
-def save_training_results(dicc_results, workbook, task, training_name="naive"):
+def save_training_results(dicc_results, workbook, id_task, training_name="naive"):
     """
     Create an excel file to save the results of the experiments
     
     """
 
-    name_worksheet = f"{training_name}_after_task{str(task+1)}"
+    name_worksheet = f"{training_name}_after_task{str(id_task)}"
     # print(name_worksheet)
 
     worksheet = workbook.add_worksheet(name_worksheet) # Create a worksheet

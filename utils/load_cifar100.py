@@ -56,7 +56,7 @@ def download_CIFAR100(download_path='./datasets/cifar100/'):
     print(check_output(cmd).decode())
     print('Done!')
 
-def get_CIFAR100_data(num_training=49000, num_validation=1000, num_test=10000, download_path='./datasets/cifar100/'):
+def get_CIFAR100_data(num_training=45000, num_validation=5000, num_test=10000, download_path='./datasets/cifar100/'):
 
     os.makedirs(download_path, exist_ok=True)
 

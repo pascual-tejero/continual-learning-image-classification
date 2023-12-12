@@ -35,15 +35,15 @@ def normal_train(model: nn.Module, optimizer: torch.optim, data_loader: torch.ut
 
 def normal_val(model: nn.Module, data_loader: torch.utils.data.DataLoader):
     model.eval()
-    epoch_loss = 0
-    for input, target in data_loader:
-        input, target = variable(input), variable(target)
-        output = model(input)
-        loss = F.cross_entropy(output, target)
-        epoch_loss += loss.item()
+    loss = 0
+    with torch.no_grad():
+        for input, target in data_loader:
+            input, target = variable(input), variable(target)
+            output = model(input)
+            loss += F.cross_entropy(output, target)
 
-    print(f"Val loss: {epoch_loss / len(data_loader)}")
-    return epoch_loss / len(data_loader)
+    print(f"Val loss: {loss / len(data_loader)}")
+    return loss / len(data_loader)
 
 
 def lwf_train(model: nn.Module, old_model:nn.Module, optimizer: torch.optim, 
@@ -77,25 +77,24 @@ def lwf_validate(model: nn.Module, old_model:nn.Module,
                  data_loader: torch.utils.data.DataLoader, alpha: float):
     model.eval()
     old_model.eval()
-    epoch_loss = 0
+    loss = 0
 
-    for input, target in data_loader:
-        input, target = variable(input), variable(target)
-        output = model(input)
-        
-        # Get the predictions of the current model
-        current_predictions = F.log_softmax(model(input), dim=1)
-        old_predictions = F.softmax(old_model(input), dim=1)
-        
-        # Calculate the KL divergence between the current and old predictions
-        penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
+    with torch.no_grad():
+        for input, target in data_loader:
+            input, target = variable(input), variable(target)
+            output = model(input)
+            
+            # Get the predictions of the current model
+            current_predictions = F.log_softmax(model(input), dim=1)
+            old_predictions = F.softmax(old_model(input), dim=1)
+            
+            # Calculate the KL divergence between the current and old predictions
+            penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
 
-        loss = F.cross_entropy(output, target) + alpha * penalty  
-        
-        epoch_loss += loss.data.item()
-
-    print(f"Val loss: {epoch_loss / len(data_loader)}")
-    return epoch_loss / len(data_loader)
+            loss += F.cross_entropy(output, target) + alpha * penalty  
+            
+    print(f"Val loss: {loss / len(data_loader)}")
+    return loss / len(data_loader)
 
 
 def test(model: nn.Module, datasets: list, args: argparse.Namespace):
@@ -116,12 +115,12 @@ def test(model: nn.Module, datasets: list, args: argparse.Namespace):
         test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                                   batch_size=args.batch_size,
                                                   shuffle=False)
-
-        for input, target in test_loader:
-            input, target = variable(input), variable(target)
-            output = model(input)
-            test_loss += F.cross_entropy(output, target, reduction="sum").data.item()
-            correct += (F.softmax(output, dim=1).max(dim=1)[1] == target).data.sum()
+        with torch.no_grad():
+            for input, target in test_loader:
+                input, target = variable(input), variable(target)
+                output = model(input)
+                test_loss += F.cross_entropy(output, target, reduction="sum").item()
+                correct += (F.softmax(output, dim=1).max(dim=1)[1] == target).sum().item()
 
         test_loss /= len(test_loader.dataset)
 
@@ -132,7 +131,8 @@ def test(model: nn.Module, datasets: list, args: argparse.Namespace):
         test_loss_list.append(test_loss)
         test_acc_list.append(accuracy)
 
-        print(f"Test on task {id_task_test + 1}: Average loss: {test_loss:.4f}, Accuracy: {accuracy:.0f}%")
+        print(f"Test on task {id_task_test+1}: Average loss: {test_loss:.6f}, "
+              f"Accuracy: {accuracy:.2f}%")
 
     avg_acc /= len(datasets)
     print(f"Average accuracy: {avg_acc:.2f}%")

@@ -11,25 +11,34 @@ sys.path.append('../')
 from utils.save_training_results import save_training_results
 from utils.utils import save_model
 
-from models.net_mnist import Net_mnist
-from models.net_cifar10 import Net_cifar10
-from models.net_cifar100 import Net_cifar100
+from models.architectures.net_mnist import Net_mnist
+from models.architectures.net_cifar10 import Net_cifar10
+from models.architectures.net_cifar100 import Net_cifar100
 
-def naive_training(datasets, args, joint_training=False):
+def naive_training(datasets, args, joint_datasets=False):
     
     """
-    In this function, we train the model using the naive approach, which is training the model on the first dataset
-    and then training the model on the second dataset.
+    In this function, we train the model using the naive approach (no continual learning).
+
+    :param datasets: list of datasets
+    :param args: arguments from the command line
+    :param joint_datasets: boolean to indicate if we are training with joint datasets or not
+    
+    :return: test_acc_final: list to save the test accuracy of each task and the test average accuracy
     """
+    print("\n")
+    print("="*100)
+    if not joint_datasets:
+        print("Training: NAIVE approach -> FINE-TUNING...")
+    else:
+        print("Training: NAIVE approach -> JOINT-DATASETS...")
+    print("="*100)
 
-    print("------------------------------------------")
-    print("Training on naive approach...")
+    # Create the excel file
+    if joint_datasets:
+        path_file = f"./results/{args.exp_name}/results_naive_joint-training_{args.dataset}.xlsx"
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    if joint_training: # If we want to train the model on the joint dataset
-        joint_dataset = []
-
+        concat_datasets = [] # List to save the joint dataset
         train_dataset, val_dataset, test_dataset = datasets[0] # Get the images and labels from the task
 
         if len(datasets) > 1: # If there are more than one task
@@ -39,29 +48,26 @@ def naive_training(datasets, args, joint_training=False):
                 val_dataset = torch.utils.data.ConcatDataset([val_dataset, val_dataset_i]) # Concatenate the datasets
                 test_dataset = torch.utils.data.ConcatDataset([test_dataset, test_dataset_i]) # Concatenate the datasets
 
-        joint_dataset.append([train_dataset, val_dataset, test_dataset]) # Append the datasets to the joint dataset
-        datasets = joint_dataset # Set the datasets to the joint dataset
- 
-    # Create the excel file
-    if args.dataset == "mnist":
-        model = Net_mnist().to(device) # Instantiate the model
-
-    elif args.dataset == "cifar10":
-        model = Net_cifar10().to(device) # Instantiate the model
-        
-    elif args.dataset == "cifar100":
-        model = Net_cifar100().to(device) # Instantiate the model
-
-    if joint_training:
-        path_file = f"./results/{args.exp_name}/results_naive_joint-training_{args.dataset}.xlsx"
+        concat_datasets.append([train_dataset, val_dataset, test_dataset]) # Append the datasets to the joint dataset
+        datasets = concat_datasets # Set the datasets to the joint dataset
     else:
         path_file = f"./results/{args.exp_name}/results_naive_fine-tuning_{args.dataset}.xlsx"
-
+    
     workbook = xlsxwriter.Workbook(path_file) # Create the excel file
+    test_acc_final = [] # List to save the test accuracy of each task and the test average accuracy
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    avg_acc_list = [] # List to save the average accuracy of each task
+    # Instantiate the model
+    if args.dataset == "mnist":
+        model = Net_mnist().to(device) 
+    elif args.dataset == "cifar10":
+        model = Net_cifar10().to(device) 
+    elif args.dataset == "cifar100":
+        model = Net_cifar100().to(device)
 
-    for id_task_dataset, task in enumerate(datasets):
+    for id_task, task in enumerate(datasets):
+        print("="*100)
+        print("="*100)
 
         patience = args.lr_patience # Patience for early stopping
         lr = args.lr # Learning rate
@@ -72,8 +78,7 @@ def naive_training(datasets, args, joint_training=False):
 
         dicc_results = {"Train task":[], "Train epoch": [], "Train loss":[], "Val loss":[],
                          "Test task":[], "Test loss":[], "Test accuracy":[], "Test average accuracy": []}
-        print("------------------------------------------")
-
+        
         train_dataset, val_dataset, _ = task # Get the images and labels from the task
         
         # Make the dataloader
@@ -85,31 +90,25 @@ def naive_training(datasets, args, joint_training=False):
                                                     shuffle=True)
         
         for epoch in range(args.epochs):
-            print("------------------------------------------")
-
+            print("="*100)
+            if joint_datasets:
+                print(f"METHOD: Joint-training -> Train on task: {id_task}, Epoch: {epoch}")
+            else:
+                print(f"METHOD: Fine-tuning -> Train on task: {id_task}, Epoch: {epoch}")
+            
             # Training
-            train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch)
+            train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task+1)
 
             # Validation 
-            val_loss_epoch = val_epoch(model, device, val_loader, id_task_dataset, epoch)
+            val_loss_epoch = val_epoch(model, device, val_loader, id_task+1)
 
             # Test
-            test_task_list, test_loss_list, test_acc_list, avg_acc = test_epoch(model, device, datasets, args)
-
+            test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test_epoch(model, device, datasets, args)
 
             # Append the results to dicc_results
-            dicc_results["Train task"].append(id_task_dataset+1)
-            dicc_results["Train epoch"].append(epoch+1)
-            dicc_results["Train loss"].append(train_loss_epoch)
-            dicc_results["Val loss"].append(val_loss_epoch)
-            dicc_results["Test task"].append(test_task_list)
-            dicc_results["Test loss"].append(test_loss_list)
-            dicc_results["Test accuracy"].append(test_acc_list)
-            dicc_results["Test average accuracy"].append(avg_acc)
-
-            # Save the results of the epoch
-            if epoch == args.epochs-1:
-                avg_acc_list.append(avg_acc)
+            dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, 
+                                          val_loss_epoch, test_tasks_id, test_tasks_loss, 
+                                          test_tasks_accuracy, avg_accuracy)
 
             # Early stopping
             if val_loss_epoch < best_val_loss:
@@ -126,44 +125,51 @@ def naive_training(datasets, args, joint_training=False):
                     if lr < args.lr_min:
                         # if the lr decreases below minimum, stop the training session
                         print()
-                        avg_acc_list.append(avg_acc) # Append the average accuracy of the task
+                        # Append the test accuracy of each task and the test average accuracy
+                        test_acc_final.append([test_tasks_accuracy, avg_accuracy]) 
                         break
                     # reset patience and recover best model so far to continue training
                     patience = args.lr_patience
                     optimizer.param_groups[0]['lr'] = lr
                     model.load_state_dict(model_best.state_dict())
             
+            # Save the results of the epoch if it is the last epoch
+            if epoch == args.epochs-1:
+                # Append the test accuracy of each task and the test average accuracy
+                test_acc_final.append([test_tasks_accuracy, avg_accuracy]) 
+
             print(f"Learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
 
-        # Save the results of the task
-        save_training_results(dicc_results, workbook, task=id_task_dataset, training_name="naive")
-
-        if not joint_training:
+        if not joint_datasets:
             # Save the model
-            save_model(model_best, args, id_task_dataset+1, task="fine-tuning", joint_training=False)
+            save_model(model_best, args, id_task+1, method="fine-tuning", joint_datasets=False)
+
+            # Save the results of the task
+            save_training_results(dicc_results, workbook, id_task+1, training_name="fine-tuning")
         else:
             # Save the model
-            save_model(model_best, args, id_task_dataset+1, task="joint-datasets", joint_training=True)
+            save_model(model_best, args, id_task+1, method="joint-datasets", joint_datasets=True)
+
+            # Save the results of the task
+            save_training_results(dicc_results, workbook, id_task+1, training_name="joint-datasets")
 
     # Close the excel file
     workbook.close()
 
+    return test_acc_final
 
 
-    return avg_acc_list
-
-
-def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch):
+def train_epoch(model, device, train_loader, optimizer, id_task):
 
     # Training
     model.train() # Set the model to training mode
 
-    train_loss_acc = 0 # Training loss
+    train_loss_accum = 0 # Training loss
 
-    for images, labels in train_loader:
+    for images, targets in train_loader:
         # Move tensors to the configured device
         images = images.to(device)
-        labels = labels.to(device)
+        targets = targets.to(device)
 
         # Zero the parameter gradients
         optimizer.zero_grad() 
@@ -172,52 +178,48 @@ def train_epoch(model, device, train_loader, optimizer, id_task_dataset, epoch):
         outputs = model(images)
 
         # Calculate the loss
-        train_loss = F.cross_entropy(outputs, labels)
-        train_loss_acc += train_loss.item()
+        train_loss = F.cross_entropy(outputs, targets)
+        train_loss_accum += train_loss.item()
 
         # Backward pass
         train_loss.backward()
 
         # Optimize
         optimizer.step()
-
-
-    print(f"Epoch: {epoch+1}, Learning rate: {optimizer.param_groups[0]['lr']}")
-
-    train_loss_epoch = train_loss_acc/len(train_loader) # Training loss
+   
+    train_loss_epoch = train_loss_accum/len(train_loader) # Training loss
 
     # Print the metrics
-    print(f"Trained on task {id_task_dataset+1} -> Epoch: {epoch+1}, Loss: {train_loss_epoch}")
+    print(f"Train on task {id_task} -> Loss: {train_loss_epoch}")
 
     return train_loss_epoch
 
 
 
 
-def val_epoch(model, device, val_loader, id_task_dataset, epoch):
+def val_epoch(model, device, val_loader, id_task):
 
     # Validation
     model.eval() # Set the model to evaluation mode
-            
-    val_loss_value = 0 # Validation loss
 
+    val_loss_epoch = 0
+            
     with torch.no_grad():
-        for images, labels in val_loader:
+        for images, targets in val_loader:
             # Move tensors to the configured device
             images = images.to(device)
-            labels = labels.to(device)
+            targets = targets.to(device)
 
             # Forward pass
             outputs = model(images)
 
             # Calculate the loss
-            val_loss = F.cross_entropy(outputs, labels)
-            val_loss_value += val_loss.item()
+            val_loss_epoch += F.cross_entropy(outputs, targets).item()
 
-    val_loss_epoch = val_loss_value/len(val_loader) # Validation loss
+    val_loss_epoch /= len(val_loader) # Validation loss
 
     # Print the metrics
-    print(f"Validated on task {id_task_dataset+1} -> Epoch: {epoch+1}, Loss: {val_loss_epoch}")
+    print(f"Validation on task {id_task} -> Loss: {val_loss_epoch}")
 
     return val_loss_epoch
 
@@ -226,16 +228,18 @@ def val_epoch(model, device, val_loader, id_task_dataset, epoch):
 def test_epoch(model, device, datasets, args):
 
     # Test
-    avg_acc = 0 # Average accuracy
+    avg_accuracy = 0 # Average accuracy
 
-    test_task_list = [] # List to save the results of the task
-    test_loss_list = [] # List to save the test loss
-    test_acc_list = [] # List to save the test accuracy
+    test_tasks_id = [] # List to save the results of the task
+    test_tasks_loss = [] # List to save the test loss
+    test_tasks_accuracy = [] # List to save the test accuracy
 
-    for id_task_test, task in enumerate(datasets):
+    model.eval() # Set the model to evaluation mode
 
-        # Metrics
-        test_loss, correct, accuracy = 0, 0, 0
+    for id_task, task in enumerate(datasets):
+
+        # Metrics for the test task 
+        test_loss, correct_pred, accuracy = 0, 0, 0
 
         _, _, test_dataset = task # Get the images and labels from the task
 
@@ -243,46 +247,58 @@ def test_epoch(model, device, datasets, args):
         test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                                     batch_size=args.batch_size,
                                                     shuffle=False)
-
         # Disable gradient calculation
-        model.eval() # Set the model to evaluation mode
         with torch.no_grad():
-            for images, labels in test_loader:
+            for images, targets in test_loader:
                 # Move tensors to the configured device
                 images = images.to(device)
-                labels = labels.to(device)
+                targets = targets.to(device)
 
                 # Forward pass
                 outputs = model(images)
 
                 # Calculate the loss
-                test_loss += F.cross_entropy(outputs, labels).item()
+                test_loss += F.cross_entropy(outputs, targets).item()
 
                 # Get the index of the max log-probability
                 pred = torch.argmax(outputs, dim=1)
-                # labels = torch.argmax(labels, dim=1)
                 
                 # Update the number of correct predictions
-                correct += torch.sum(pred == labels).item()
+                correct_pred += torch.sum(pred == targets).item()
 
             # Calculate the average loss
             test_loss /= len(test_loader.dataset)
 
-        # Calculate the average accuracy
-        accuracy = 100. * correct / len(test_loader.dataset)
-        avg_acc += accuracy
+            # Calculate the average accuracy
+            accuracy = 100. * correct_pred / len(test_loader.dataset)
+            avg_accuracy += accuracy
 
-        # Append the results to the lists
-        test_task_list.append(id_task_test+1)
-        test_loss_list.append(test_loss)
-        test_acc_list.append(accuracy)
+            # Append the results to the lists
+            test_tasks_id.append(id_task+1)
+            test_tasks_loss.append(test_loss)
+            test_tasks_accuracy.append(accuracy)
 
-        # Print the metrics
-        print(f"Test on task {id_task_test+1}: Average loss: {test_loss:.4f}, Accuracy: {accuracy:.0f}%")
+            # Print the metrics
+            print(f"Test on task {id_task+1}: Average loss: {test_loss:.6f}, " 
+                  f"Accuracy: {accuracy:.2f}%")
     
     # Calculate the average accuracy
-    avg_acc /= len(datasets)
-    print(f"Average accuracy: {avg_acc:.0f}%")
+    avg_accuracy /= len(datasets)
+    print(f"Average accuracy: {avg_accuracy:.2f}%")
 
-    return test_task_list, test_loss_list, test_acc_list, avg_acc
+    return test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy
 
+def append_results(dicc_results, id_task, epoch, train_loss_epoch, val_loss_epoch, 
+                   test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy):
+
+    # Append the results to dicc_results
+    dicc_results["Train task"].append(id_task)
+    dicc_results["Train epoch"].append(epoch)
+    dicc_results["Train loss"].append(train_loss_epoch)
+    dicc_results["Val loss"].append(val_loss_epoch)
+    dicc_results["Test task"].append(test_tasks_id)
+    dicc_results["Test loss"].append(test_tasks_loss)
+    dicc_results["Test accuracy"].append(test_tasks_accuracy)
+    dicc_results["Test average accuracy"].append(avg_accuracy)
+
+    return dicc_results  
