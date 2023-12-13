@@ -63,7 +63,7 @@ def main(args):
 
     # Train the model using the LwF approach
     dicc_results_test["LwF"] = lwf_training(datasets, args)
-    print(dicc_results_test)
+    
     # Save the results
     save_global_results(dicc_results_test, args)
 

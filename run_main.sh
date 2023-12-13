@@ -1,17 +1,14 @@
 python main.py --exp_name mnist_training --seed 0 --epochs 200 --lr 0.001 \
     --lr_decay 5 --lr_patience 5 --lr_min 1e-6 --batch_size 200 --num_tasks 2 \
-    --scheduler_step_size 7 --scheduler_gamma 0.3 --dataset "mnist" \
-    --ewc_lambda 1000 --lwf_lambda 1
+    --dataset mnist --ewc_lambda 1000 --lwf_lambda 1
 
 python main.py --exp_name cifar10_training --seed 0 --epochs 200 --lr 0.001 \
     --lr_decay 5 --lr_patience 5 --lr_min 1e-6 --batch_size 200 --num_tasks 2 \
-    --scheduler_step_size 7 --scheduler_gamma 0.3 --dataset "cifar10" \
-    --ewc_lambda 1000 --lwf_lambda 1
+    --dataset cifar10 --ewc_lambda 1000 --lwf_lambda 1
 
 python main.py --exp_name cifar100_training --seed 0 --epochs 200 --lr 0.001 \
     --lr_decay 5 --lr_patience 5 --lr_min 1e-6 --batch_size 200 --num_tasks 2 \
-    --scheduler_step_size 7 --scheduler_gamma 0.3 --dataset "cifar100" \
-    --ewc_lambda 1000 --lwf_lambda 1
+    --dataset cifar100 --ewc_lambda 1000 --lwf_lambda 1
 
 # # General parameters
 # argparse.add_argument('--exp_name', type=str, default="exp")

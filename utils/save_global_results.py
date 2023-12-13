@@ -36,9 +36,9 @@ def save_global_results(dicc_results_test, args):
     cont_avg_task = 2 + args.num_tasks
     for i in range(args.num_tasks):
         for j in range(args.num_tasks):
-            worksheet.write(cont_tasks, 0, f"Test accuracy on task {j+1}")
+            worksheet.write(cont_tasks, 0, f"Test accuracy on task {j+1} after task {i+1}")
             cont_tasks += 1
-        worksheet.write(cont_avg_task, 0, f"Test average accuracy on task {i+1}")
+        worksheet.write(cont_avg_task, 0, f"Test average accuracy after task {i+1}")
         cont_avg_task += args.num_tasks + 1
         cont_tasks += 1
 
