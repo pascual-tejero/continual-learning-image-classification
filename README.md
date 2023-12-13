@@ -1,2 +1,4 @@
-# Comparison of Continual Learning Methods
-Analyzing Classical Continual Learning Methods: Explore the performance of diverse continual learning techniques on image classification tasks with MNIST and CIFAR-10 datasets. Effortlessly compare and assess the outcomes of each method, meticulously documented in an Excel file for a comprehensive evaluation.
+# Examining Classical Continual Learning Methods for Image Classification Tasks
+This study delves into the efficacy of various classical continual learning techniques, including Rehearsal training, Elastic Weight Consolidation, and Learning Without Forgetting. Additionally, it investigates naive approaches such as fine-tuning and joint datasets training to establish upper and lower bounds on performance. The experimentation involves training neural networks on diverse image classification tasks, namely MNIST, CIFAR-10, and CIFAR-100 datasets.
+
+To comprehensively evaluate the outcomes of each method, meticulous documentation is maintained in an Excel file. This facilitates seamless comparison and assessment, offering insights into the strengths and limitations of each approach. The study aims to contribute valuable insights into the landscape of continual learning methods for image classification, providing a basis for informed decision-making in real-world applications.
