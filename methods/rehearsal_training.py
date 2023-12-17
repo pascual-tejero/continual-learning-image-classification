@@ -88,7 +88,10 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
             val_loss_epoch = val_epoch(model, device, val_loader, id_task+1)
 
             # Test
-            test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test_epoch(model, device, datasets, args)
+            test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test_epoch(model, 
+                                                                                           device, 
+                                                                                           datasets, 
+                                                                                           args)
 
             # Append the results to dicc_results
             dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, 
@@ -115,7 +118,8 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
                         break
                     # reset patience and recover best model so far to continue training
                     patience = args.lr_patience
-                    optimizer.param_groups[0]['lr'] = lr
+                    for param_group in optimizer.param_groups:
+                        param_group['lr'] = lr
                     model.load_state_dict(model_best.state_dict())
             
             # Save the results of the epoch if it is the last epoch

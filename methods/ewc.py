@@ -84,7 +84,9 @@ def ewc_training(datasets, args):
                 val_loss_epoch = normal_val(model, val_loader)
 
                 # Test
-                test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, datasets, args) 
+                test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, 
+                                                                                         datasets, 
+                                                                                         args) 
 
                 # Append the results to dicc_results
                 dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, 
@@ -110,7 +112,8 @@ def ewc_training(datasets, args):
                             break
                         # reset patience and recover best model so far to continue training
                         patience = args.lr_patience
-                        optimizer.param_groups[0]['lr'] = lr
+                        for param_group in optimizer.param_groups:
+                            param_group['lr'] = lr
                         model.load_state_dict(model_best.state_dict())
                 
                 # Save the results of the epoch if it is the last epoch
@@ -153,20 +156,19 @@ def ewc_training(datasets, args):
                 print(f"METHOD: EWC -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 # Training
-                train_loss_epoch = ewc_train(model, 
-                                             optimizer, 
-                                             train_loader, 
+                train_loss_epoch = ewc_train(model, optimizer, train_loader, 
                                              EWC(model, old_model, train_loader, args),
                                              importance=args.ewc_lambda)
 
                 # Validation
-                val_loss_epoch = ewc_validate(model, 
-                                              val_loader, 
+                val_loss_epoch = ewc_validate(model, val_loader, 
                                               EWC(model, old_model, val_loader, args),
                                               importance=args.ewc_lambda)
 
                 # Test
-                test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, datasets, args)
+                test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, 
+                                                                                         datasets, 
+                                                                                         args)
 
                 # Append the results to dicc_results
                 dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, 
@@ -193,7 +195,9 @@ def ewc_training(datasets, args):
                             break
                         # reset patience and recover best model so far to continue training
                         patience = args.lr_patience
-                        optimizer.param_groups[0]['lr'] = lr
+                        for param_group in optimizer.param_groups:
+                            param_group['lr'] = lr
+                        model_best = copy.deepcopy(model)
                         model.load_state_dict(model_best.state_dict())
 
                 # Save the results of the epoch if it is the last epoch

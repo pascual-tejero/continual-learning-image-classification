@@ -1,4 +1,4 @@
-from copy import deepcopy
+import copy
 
 import torch
 from torch import nn
@@ -50,6 +50,9 @@ def lwf_train(model: nn.Module, old_model:nn.Module, optimizer: torch.optim,
               data_loader: torch.utils.data.DataLoader, alpha: float):
     model.train()
     epoch_loss = 0
+    epoch_loss = 0
+    epoch_penalty_loss = 0
+
     for input, target in data_loader:
         input, target = variable(input), variable(target)
         optimizer.zero_grad()
@@ -65,11 +68,12 @@ def lwf_train(model: nn.Module, old_model:nn.Module, optimizer: torch.optim,
         loss = F.cross_entropy(output, target) + alpha * penalty 
 
         epoch_loss += loss.data.item()
+        epoch_penalty_loss += penalty.data.item() * alpha
         loss.backward()
         optimizer.step()
 
     print(f"Train loss: {epoch_loss / len(data_loader)}")
-    print(f"Penalty: {penalty.data.item()}")
+    print(f"Penalty: {epoch_penalty_loss / len(data_loader)}")
     return epoch_loss / len(data_loader)
 
 
@@ -96,6 +100,67 @@ def lwf_validate(model: nn.Module, old_model:nn.Module,
     print(f"Val loss: {loss / len(data_loader)}")
     return loss / len(data_loader)
 
+def lwf_train_aux(model, old_model, optimizer, data_loader, lwf_lambda, auxiliar_network, lwf_aux_lambda):
+    model.train()
+    auxiliar_network.eval()
+    epoch_loss = 0
+    epoch_penalty_loss = 0
+    epoch_aux_loss = 0
+
+
+    for input, target in data_loader:
+        input, target = variable(input), variable(target)
+        optimizer.zero_grad()
+        output = model(input)
+
+        # Get the predictions of the current model
+        current_predictions = F.log_softmax(model(input), dim=1)
+        old_predictions = F.softmax(old_model(input), dim=1)
+        
+        # Calculate the KL divergence between the current and old predictions
+        penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
+
+        # Get the predictions of the auxiliar network
+        aux_loss = F.cross_entropy(auxiliar_network(input), target)
+
+        loss = F.cross_entropy(output, target) + lwf_lambda * penalty + lwf_aux_lambda * aux_loss
+
+        epoch_loss += loss.data.item()
+        epoch_penalty_loss += penalty.data.item() * lwf_lambda
+        epoch_aux_loss += aux_loss.data.item() * lwf_aux_lambda
+        loss.backward()
+        optimizer.step()
+
+    print(f"Train loss: {epoch_loss / len(data_loader)}")
+    print(f"Penalty: {epoch_penalty_loss / len(data_loader)}")
+    print(f"Auxiliar loss: {epoch_aux_loss / len(data_loader)}")
+    return epoch_loss / len(data_loader)
+
+def lwf_validate_aux(model, old_model, data_loader, lwf_lambda, auxiliar_network, lwf_aux_lambda):
+    model.eval()
+    old_model.eval()
+    auxiliar_network.eval()
+    loss = 0
+
+    with torch.no_grad():
+        for input, target in data_loader:
+            input, target = variable(input), variable(target)
+            output = model(input)
+            
+            # Get the predictions of the current model
+            current_predictions = F.log_softmax(model(input), dim=1)
+            old_predictions = F.softmax(old_model(input), dim=1)
+            
+            # Calculate the KL divergence between the current and old predictions
+            penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
+
+            # Get the predictions of the auxiliar network
+            aux_loss = F.cross_entropy(auxiliar_network(input), target)
+
+            loss += F.cross_entropy(output, target) + lwf_lambda * penalty + lwf_aux_lambda * aux_loss
+
+    print(f"Val loss: {loss / len(data_loader)}")
+    return loss / len(data_loader)
 
 def test(model: nn.Module, datasets: list, args: argparse.Namespace):
     # Test
@@ -138,3 +203,33 @@ def test(model: nn.Module, datasets: list, args: argparse.Namespace):
     print(f"Average accuracy: {avg_acc:.2f}%")
 
     return test_task_list, test_loss_list, test_acc_list, avg_acc
+
+# def adjust_lr_patience(val_loss_epoch, best_val_loss, patience, lr, args, model, model_best, optimizer,
+#                        test_acc_final, test_tasks_accuracy, avg_accuracy, epoch):
+#     # Early stopping
+#     if val_loss_epoch < best_val_loss:
+#         best_val_loss = val_loss_epoch
+#         patience = args.lr_patience
+#         model_best = copy.deepcopy(model)
+#         return best_val_loss, patience, model_best
+#     else:
+#         # if the loss does not go down, decrease patience
+#         patience -= 1
+#         if patience <= 0:
+#             # if it runs out of patience, reduce the learning rate
+#             lr /= args.lr_decay
+#             print(' lr={:.1e}'.format(lr), end='')
+#             if lr < args.lr_min:
+#                 # if the lr decreases below minimum, stop the training session
+#                 print()
+#                 test_acc_final.append([test_tasks_accuracy, avg_accuracy]) 
+#                 return best_val_loss, patience, model_best
+#             # reset patience and recover best model so far to continue training
+#             patience = args.lr_patience
+#             optimizer.param_groups[0]['lr'] = lr
+#             model.load_state_dict(model_best.state_dict())
+
+#     # Save the results of the epoch if it is the last epoch
+#     if epoch == args.epochs-1:
+#         test_acc_final.append([test_tasks_accuracy, avg_accuracy]) 
+#     return best_val_loss, patience, model_best
