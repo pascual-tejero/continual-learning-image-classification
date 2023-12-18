@@ -27,7 +27,9 @@ def save_global_results(dicc_results_test, args):
     'valign': 'vcenter',
     'fg_color': '#D7E4BC'})
 
-    worksheet.merge_range('A1:H1', f"Global metrics -> Dataset: {args.dataset}", merge_format)
+    dict_len = len(dicc_results_test)
+
+    worksheet.merge_range(f"A1:J1", f"Global metrics -> Dataset: {args.dataset}", merge_format)
 
     # Create the headers
     worksheet.write(1, 0, "Test task")

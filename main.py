@@ -61,9 +61,12 @@ def main(args):
     # # Train the model using the EWC approach
     dicc_results_test["EWC"] = ewc_training(datasets, args)
 
-    # Train the model using the LwF approach
+    # # Train the model using the LwF approach
     dicc_results_test["LwF"] = lwf_training(datasets, args)
+    dicc_results_test["LwF criterion"] = lwf_training(datasets, args, aux_training=False, criterion_bool=True)
+
     dicc_results_test["LwF Aux"] = lwf_training(datasets, args, aux_training=True)
+    dicc_results_test["LwF Aux criterion"] = lwf_training(datasets, args, aux_training=True, criterion_bool=True)
 
     # Save the results
     save_global_results(dicc_results_test, args)
@@ -78,9 +81,9 @@ if __name__ == '__main__':
     argparse = argparse.ArgumentParser()
 
     # General parameters
-    argparse.add_argument('--exp_name', type=str, default="test")
+    argparse.add_argument('--exp_name', type=str, default="test1")
     argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--epochs', type=int, default=1)
+    argparse.add_argument('--epochs', type=int, default=200)
     argparse.add_argument('--lr', type=float, default=0.001)
     argparse.add_argument('--lr_decay', type=float, default=5)
     argparse.add_argument('--lr_patience', type=int, default=5)
@@ -97,7 +100,7 @@ if __name__ == '__main__':
     argparse.add_argument('--ewc_lambda' , type=float, default=1000)
 
     # Distillation parameters
-    argparse.add_argument('--lwf_lambda' , type=float, default=1)
+    argparse.add_argument('--lwf_lambda' , type=float, default=10)
     argparse.add_argument('--lwf_aux_lambda' , type=float, default=1)
 
 

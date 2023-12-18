@@ -18,7 +18,7 @@ from models.architectures.net_cifar100 import Net_cifar100
 
 from methods.lwf_class import normal_train, normal_val, lwf_train, lwf_validate, test, lwf_train_aux, lwf_validate_aux
 
-def lwf_training(datasets, args, aux_training=False):
+def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
 
     print("\n")
     print("="*100)
@@ -68,10 +68,10 @@ def lwf_training(datasets, args, aux_training=False):
                 print(f"METHOD: LwF -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 # Training
-                train_loss_epoch = normal_train(model, optimizer, train_loader)
+                train_loss_epoch = normal_train(model, optimizer, train_loader, criterion_bool)
 
                 # Validation
-                val_loss_epoch = normal_val(model, val_loader)
+                val_loss_epoch = normal_val(model, val_loader, criterion_bool)
 
                 # Test
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, 
@@ -106,11 +106,12 @@ def lwf_training(datasets, args, aux_training=False):
                             param_group['lr'] = lr
                         model.load_state_dict(model_best.state_dict())
 
+                print(f"Current learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
+
                 # Save the results of the epoch if it is the last epoch
                 if epoch == args.epochs-1:
                     test_acc_final.append([test_tasks_accuracy, avg_accuracy]) 
                 
-                print(f"Learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
             
         else:
             
@@ -135,9 +136,9 @@ def lwf_training(datasets, args, aux_training=False):
                     # test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(auxiliar_network, 
                     #                                                                          datasets, 
                     #                                                                          args)
-                    normal_train(auxiliar_network, optimizer_aux, train_loader)
+                    normal_train(auxiliar_network, optimizer_aux, train_loader, criterion_bool)
 
-                    val_loss_epoch_aux = normal_val(auxiliar_network, val_loader)
+                    val_loss_epoch_aux = normal_val(auxiliar_network, val_loader, criterion_bool)
 
                     test(auxiliar_network, datasets, args)
 
@@ -164,7 +165,7 @@ def lwf_training(datasets, args, aux_training=False):
                                 param_group['lr'] = lr_aux
                             auxiliar_network.load_state_dict(model_best_aux.state_dict())
                     
-                    print(f"Learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
+                    print(f"Current learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
 
                     if epoch == args.epochs-1:
                         auxiliar_network = copy.deepcopy(model_best_aux).to(device)
@@ -186,19 +187,20 @@ def lwf_training(datasets, args, aux_training=False):
                 if not aux_training:
                     # Training
                     train_loss_epoch = lwf_train(model, old_model, optimizer, train_loader, 
-                                                 args.lwf_lambda)
+                                                 args.lwf_lambda, criterion_bool)
 
                     # Validation
-                    val_loss_epoch = lwf_validate(model, old_model, val_loader, args.lwf_lambda)
+                    val_loss_epoch = lwf_validate(model, old_model, val_loader, args.lwf_lambda, criterion_bool)
                 
                 else:
                     # Training
                     train_loss_epoch = lwf_train_aux(model, old_model, optimizer, train_loader, 
-                                                 args.lwf_lambda, auxiliar_network, args.lwf_aux_lambda)
+                                                 args.lwf_lambda, auxiliar_network, args.lwf_aux_lambda,
+                                                 criterion_bool)
 
                     # Validation
                     val_loss_epoch = lwf_validate_aux(model, old_model, val_loader, args.lwf_lambda,
-                                                  auxiliar_network, args.lwf_aux_lambda)
+                                                  auxiliar_network, args.lwf_aux_lambda, criterion_bool)
 
                 # Test
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, 
@@ -233,11 +235,12 @@ def lwf_training(datasets, args, aux_training=False):
                             param_group['lr'] = lr
                         model.load_state_dict(model_best.state_dict())
 
+                print(f"Learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
+
                 # Save the results of the epoch if it is the last epoch 
                 if epoch == args.epochs-1:
                     test_acc_final.append([test_tasks_accuracy, avg_accuracy]) 
                 
-                print(f"Learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
 
         # Save the results (after each task)
         save_training_results(dicc_results, workbook, id_task+1, training_name="LwF")
