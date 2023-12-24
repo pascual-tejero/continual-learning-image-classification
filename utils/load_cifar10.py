@@ -1,13 +1,12 @@
-import numpy as np
-
-from six.moves import cPickle as pickle
 import os
+import numpy as np
+import urllib.request
+import tarfile
+from six.moves import cPickle as pickle
 import platform
-from subprocess import check_output
 
 classes = ('plane', 'car', 'bird', 'cat',
            'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
 
 img_rows, img_cols = 32, 32
 input_shape = (img_rows, img_cols, 3)
@@ -44,19 +43,26 @@ def load_CIFAR10(ROOT):
     Xte, Yte = load_CIFAR_batch(os.path.join(ROOT, 'test_batch'))
     return Xtr, Ytr, Xte, Yte
 
+
 def download_CIFAR10(download_path='./datasets/cifar10/'):
-    """ download and extract the cifar10 dataset """
+    """Download and extract the CIFAR-10 dataset."""
     dataset_link = 'https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz'
     file_name = 'cifar-10-python.tar.gz'
-    if os.path.exists(download_path) == False:
+    
+    if not os.path.exists(download_path):
         os.makedirs(download_path)
+    
     out_path = os.path.join(download_path, file_name)
-    cmd = ['wget', dataset_link, '-O', out_path]
+    
+    # Download the file using urllib.request
     print('Downloading CIFAR-10 from {}'.format(dataset_link))
-    print(check_output(cmd).decode())
-    cmd = ['tar', '-zxvf', out_path, '-C', download_path]
+    urllib.request.urlretrieve(dataset_link, out_path)
+    
+    # Extract the tar.gz file using tarfile
     print('Extracting CIFAR-10 from {}'.format(out_path))
-    print(check_output(cmd).decode())
+    with tarfile.open(out_path, 'r:gz') as tar:
+        tar.extractall(download_path)
+    
     print('Done!')
 
 def get_CIFAR10_data(num_training=49000, num_validation=1000, num_test=10000, download_path='./datasets/cifar10/'):

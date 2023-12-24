@@ -92,9 +92,9 @@ def naive_training(datasets, args, joint_datasets=False):
         for epoch in range(args.epochs):
             print("="*100)
             if joint_datasets:
-                print(f"METHOD: Joint-training -> Train on task: {id_task}, Epoch: {epoch}")
+                print(f"METHOD: Joint-training -> Train on task: {id_task+1}, Epoch: {epoch}")
             else:
-                print(f"METHOD: Fine-tuning -> Train on task: {id_task}, Epoch: {epoch}")
+                print(f"METHOD: Fine-tuning -> Train on task: {id_task+1}, Epoch: {epoch}")
             
             # Training
             train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task+1)

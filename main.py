@@ -1,7 +1,9 @@
 import torch
-
+import os
+import platform
+import shutil
 import argparse
-import os 
+
 
 from utils.get_dataset_mnist import get_dataset_mnist
 from utils.get_dataset_cifar10 import get_dataset_cifar10
@@ -26,27 +28,43 @@ def main(args):
     """
     # Set the seed
     torch.manual_seed(args.seed)
-
-    # Create a dictionary to save the results
-    dicc_results_test = {}
     
+    # Determine the operating system
+    system_platform = platform.system()
+
     # Create the folders to save the models
-    if os.path.exists(f'./models/models_saved/{args.exp_name}'):
-        os.system(f'rm -rf ./models/models_saved/{args.exp_name}')
-    os.makedirs(f'./models/models_saved/{args.exp_name}', exist_ok=True)
+    models_saved_path = f'./models/models_saved/{args.exp_name}'
+    if os.path.exists(models_saved_path):
+        if system_platform == 'Windows':
+            # Use shutil.rmtree for Windows
+            shutil.rmtree(models_saved_path)
+        else:
+            # Use os.system('rm -rf') for Unix-like systems
+            os.system(f'rm -rf {models_saved_path}')
+    os.makedirs(models_saved_path, exist_ok=True)
 
     # Create the folders to save the results
-    if os.path.exists(f'./results/{args.exp_name}'):
-        os.system(f'rm -rf ./results/{args.exp_name}')
-    os.makedirs(f'./results/{args.exp_name}', exist_ok=True)
+    results_path = f'./results/{args.exp_name}'
+    if os.path.exists(results_path):
+        if system_platform == 'Windows':
+            # Use shutil.rmtree for Windows
+            shutil.rmtree(results_path)
+        else:
+            # Use os.system('rm -rf') for Unix-like systems
+            os.system(f'rm -rf {results_path}')
+    os.makedirs(results_path, exist_ok=True)
 
+    # Get the datasets
     if args.dataset == "mnist":
         datasets = get_dataset_mnist(args)
     elif args.dataset == "cifar10":
         datasets = get_dataset_cifar10(args)
     elif args.dataset == "cifar100":
         datasets = get_dataset_cifar100(args)
-        
+    
+    # Create a dictionary to save the results
+    dicc_results_test = {}
+
     # # Train the model using the naive approach (no continual learning) for fine-tuning
     dicc_results_test["Fine-tuning"] = naive_training(datasets, args)
 
@@ -83,26 +101,25 @@ if __name__ == '__main__':
     # General parameters
     argparse.add_argument('--exp_name', type=str, default="test1")
     argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--epochs', type=int, default=200)
-    argparse.add_argument('--lr', type=float, default=0.001)
+    argparse.add_argument('--epochs', type=int, default=500)
+    argparse.add_argument('--lr', type=float, default=0.0001)
     argparse.add_argument('--lr_decay', type=float, default=5)
-    argparse.add_argument('--lr_patience', type=int, default=5)
-    argparse.add_argument('--lr_min', type=float, default=1e-6)
-    argparse.add_argument('--batch_size', type=int, default=200)
+    argparse.add_argument('--lr_patience', type=int, default=10)
+    argparse.add_argument('--lr_min', type=float, default=1e-8)
+    argparse.add_argument('--batch_size', type=int, default=500)
     argparse.add_argument('--num_tasks', type=int, default=2)
     # argparse.add_argument('--scheduler_step_size', type=int, default=7)
     # argparse.add_argument('--scheduler_gamma', type=float, default=0.3)
 
     # Dataset parameters: mnist, cifar10, cifar100
-    argparse.add_argument('--dataset', type=str, default="cifar100")
+    argparse.add_argument('--dataset', type=str, default="cifar10")
 
     # EWC parameters
     argparse.add_argument('--ewc_lambda' , type=float, default=1000)
 
     # Distillation parameters
-    argparse.add_argument('--lwf_lambda' , type=float, default=10)
-    argparse.add_argument('--lwf_aux_lambda' , type=float, default=1)
-
+    argparse.add_argument('--lwf_lambda' , type=float, default=1)
+    argparse.add_argument('--lwf_aux_lambda' , type=float, default=0.5)
 
     # Run the main function
     main(argparse.parse_args())
