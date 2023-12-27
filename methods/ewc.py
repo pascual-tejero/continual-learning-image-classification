@@ -35,7 +35,7 @@ def ewc_training(datasets, args):
     print("Training on EWC approach...")
     print("="*100)
 
-    path_file = f"./results/{args.exp_name}/results_ewc_{args.dataset}.xlsx" # Path to save the results
+    path_file = f"./results/{args.exp_name}/ewc_{args.dataset}.xlsx" # Path to save the results
     workbook = xlsxwriter.Workbook(path_file) # Create the excel file
     test_acc_final = [] # List to save the test accuracy of each task and the test average accuracy
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -147,7 +147,7 @@ def ewc_training(datasets, args):
             old_model = copy.deepcopy(model)
 
             # Load the previous model
-            path_old_model = (f"./models/models_saved/{args.exp_name}/ewc_training_{args.dataset}/"
+            path_old_model = (f"./models/models_saved/{args.exp_name}/ewc_{args.dataset}/"
                               f"model_ewc_aftertask_{id_task}_{args.dataset}.pt")
             old_model.load_state_dict(torch.load(path_old_model))
                                                             

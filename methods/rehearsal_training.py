@@ -32,7 +32,7 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
     print(f"Training: REHEARSAL approach, percentage: {rehearsal_percentage*100}%...")
     print("="*100)
 
-    path_file = f"./results/{args.exp_name}/results_rehearsal_{rehearsal_percentage}_{args.dataset}.xlsx"
+    path_file = f"./results/{args.exp_name}/rehearsal_{rehearsal_percentage}_{args.dataset}.xlsx"
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
     test_acc_final = [] # List to save the test accuracy of each task and the test average accuracy
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

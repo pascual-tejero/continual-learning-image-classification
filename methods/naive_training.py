@@ -36,7 +36,7 @@ def naive_training(datasets, args, joint_datasets=False):
 
     # Create the excel file
     if joint_datasets:
-        path_file = f"./results/{args.exp_name}/results_naive_joint-training_{args.dataset}.xlsx"
+        path_file = f"./results/{args.exp_name}/naive_joint-training_{args.dataset}.xlsx"
 
         concat_datasets = [] # List to save the joint dataset
         train_dataset, val_dataset, test_dataset = datasets[0] # Get the images and labels from the task
@@ -51,7 +51,7 @@ def naive_training(datasets, args, joint_datasets=False):
         concat_datasets.append([train_dataset, val_dataset, test_dataset]) # Append the datasets to the joint dataset
         datasets = concat_datasets # Set the datasets to the joint dataset
     else:
-        path_file = f"./results/{args.exp_name}/results_naive_fine-tuning_{args.dataset}.xlsx"
+        path_file = f"./results/{args.exp_name}/naive_fine-tuning_{args.dataset}.xlsx"
     
     workbook = xlsxwriter.Workbook(path_file) # Create the excel file
     test_acc_final = [] # List to save the test accuracy of each task and the test average accuracy

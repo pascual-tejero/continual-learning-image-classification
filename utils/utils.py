@@ -14,8 +14,8 @@ def save_model(model, args, id_task_dataset, method="naive", joint_datasets=Fals
     :return: None
     """
 
-    os.makedirs(f'./models/models_saved/{args.exp_name}/{method}_training_{args.dataset}', exist_ok=True)
-    path = f'./models/models_saved/{args.exp_name}/{method}_training_{args.dataset}'
+    os.makedirs(f'./models/models_saved/{args.exp_name}/{method}_{args.dataset}', exist_ok=True)
+    path = f'./models/models_saved/{args.exp_name}/{method}_{args.dataset}'
 
     if not joint_datasets:
         torch.save(model.state_dict(), f'{path}/model_{method}_aftertask_{id_task_dataset}_{args.dataset}.pt')

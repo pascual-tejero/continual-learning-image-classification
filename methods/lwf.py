@@ -25,7 +25,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
     print("Training on LwF approach...")
     print("="*100)
 
-    path_file = f'./results/{args.exp_name}/results_lwf_{args.dataset}.xlsx'
+    path_file = f'./results/{args.exp_name}/lwf_{args.dataset}.xlsx'
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
     test_acc_final = []  # List to save the average accuracy of each task
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -165,7 +165,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                                 param_group['lr'] = lr_aux
                             auxiliar_network.load_state_dict(model_best_aux.state_dict())
                     
-                    print(f"Current learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
+                    print(f"Current learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience_aux}")
 
                     if epoch == args.epochs-1:
                         auxiliar_network = copy.deepcopy(model_best_aux).to(device)
@@ -175,7 +175,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
             # Load the previous model
             old_model = copy.deepcopy(model).to(device)
 
-            path_old_model = (f"./models/models_saved/{args.exp_name}/lwf_training_{args.dataset}/"
+            path_old_model = (f"./models/models_saved/{args.exp_name}/lwf_{args.dataset}/"
                             f"model_lwf_aftertask_{id_task}_{args.dataset}.pt")
             old_model.load_state_dict(torch.load(path_old_model))
             old_model.eval()
