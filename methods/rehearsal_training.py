@@ -79,7 +79,7 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
 
         for epoch in range(args.epochs):
             print("="*100)
-            print(f"METHOD: Rehearsal training -> Train on task {id_task+1} -> Epoch: {epoch}")
+            print(f"METHOD: Rehearsal training -> Train on task {id_task+1} -> Epoch: {epoch+1}")
 
             # Training
             train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task+1)
