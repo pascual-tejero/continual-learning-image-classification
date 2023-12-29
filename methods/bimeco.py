@@ -341,9 +341,11 @@ def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, image
     optimizer_short.zero_grad()
     optimizer_long.zero_grad()
 
+    # Get the outputs of the models
     output_short = model_short(images_s) 
     output_long = model_long(images_l)
 
+    # Compute the difference between the feature extractor outputs
     feat_ext_short_model_images_s = F.normalize(model_short.feature_extractor(images_s))
     feat_ext_long_model_images_s = F.normalize(model_long.feature_extractor(images_s))
     diff_images_s = (feat_ext_short_model_images_s - feat_ext_long_model_images_s) ** 2 
@@ -352,8 +354,9 @@ def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, image
     feat_ext_long_model_images_l = F.normalize(model_long.feature_extractor(images_l))
     diff_images_l = (feat_ext_short_model_images_l - feat_ext_long_model_images_l) ** 2 
 
-    diff = torch.cat((diff_images_s, diff_images_l), dim=0)
+    diff = torch.cat((diff_images_s, diff_images_l), dim=0) # Concatenate the differences
 
+    # Compute the loss
     loss = (args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) +
             args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) +
             args.bimeco_lambda_diff * diff.sum())
@@ -364,11 +367,11 @@ def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, image
     output_long = F.cross_entropy(output_long, labels_l).item() * args.bimeco_lambda_long
     diff_images_s = diff_images_s.sum().item() 
     diff_images_l = diff_images_l.sum().item()
+    
+    loss.backward() # Backward pass
 
-    loss.backward()
-
-    optimizer_short.step()
-    optimizer_long.step()
+    optimizer_short.step() # Update the parameters of the short term memory model
+    optimizer_long.step() # Update the parameters of the long term memory model
 
     return epoch_loss_short, epoch_loss_long, output_short, output_long, diff_images_l, diff_images_s
 
