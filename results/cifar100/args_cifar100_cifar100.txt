@@ -1,6 +1,6 @@
 exp_name : cifar100
 seed : 0
-epochs : 300
+epochs : 500
 lr : 0.001
 lr_decay : 5
 lr_patience : 10
@@ -15,8 +15,8 @@ feature_dim : 64
 ewc_lambda : 1000
 lwf_lambda : 1
 lwf_aux_lambda : 0.5
-memory_size : 2000
-bimeco_lambda_short : 1
-bimeco_lambda_long : 1
-bimeco_lambda_diff : 1
+memory_size : 5000
+bimeco_lambda_short : 0.5
+bimeco_lambda_long : 0.5
+bimeco_lambda_diff : 0.5
 m : 0.5
