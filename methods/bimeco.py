@@ -11,10 +11,8 @@ import tqdm
 import numpy as np
 
 sys.path.append('../')
-
 from utils.save_training_results import save_training_results
 from utils.utils import save_model
-
 from models.architectures.net_mnist import Net_mnist
 from models.architectures.net_cifar10 import Net_cifar10
 from models.architectures.net_cifar100 import Net_cifar100
@@ -116,10 +114,10 @@ def bimeco_training(datasets, args):
                     test_acc_final.append([test_tasks_accuracy, avg_accuracy])
 
         else:
-            # Load model for short term memory
             path_model = (f"./models/models_saved/{args.exp_name}/BiMeCo_{args.dataset}/"
                           f"model_BiMeCo_aftertask_{id_task}_{args.dataset}.pt")
             
+            # Load model for short term memory
             model_short = copy.deepcopy(model) 
             model_short.load_state_dict(torch.load(path_model))
 
@@ -145,7 +143,14 @@ def bimeco_training(datasets, args):
                                                                 batch_size=int(ratio*args.batch_size),
                                                                 shuffle=True)
             
-            epoch_loss_short, epoch_loss_long = 0, 0
+            train_loss_epoch = 0
+            total_epoch_loss_short, total_epoch_loss_long = 0, 0
+            total_output_short, total_output_long = 0, 0
+            total_diff_images_l, total_diff_images_s = 0, 0
+
+            data_loader_exem_iter = iter(data_loader_exem)
+            train_dataloader_l_iter = iter(train_dataloader_l)
+
 
             for epoch in range(args.epochs):
                 print("="*100)
@@ -156,14 +161,15 @@ def bimeco_training(datasets, args):
 
                     # Sample two different batches from data_loader_exem
                     try:
-                        images_exem_1, labels_exem_1 = next(iter(data_loader_exem))
-                        images_exem_2, labels_exem_2 = next(iter(data_loader_exem))
+                        images_exem_1, labels_exem_1 = next(data_loader_exem_iter)
+                        images_exem_2, labels_exem_2 = next(data_loader_exem_iter)
                     except StopIteration:
                         data_loader_exem = torch.utils.data.DataLoader(dataset=torch.utils.data.TensorDataset(tensor_exem_img, tensor_exem_label),
                                                                     batch_size=args.batch_size,
                                                                     shuffle=True)
-                        images_exem_1, labels_exem_1 = next(iter(data_loader_exem))
-                        images_exem_2, labels_exem_2 = next(iter(data_loader_exem))
+                        data_loader_exem_iter = iter(data_loader_exem)
+                        images_exem_1, labels_exem_1 = next(data_loader_exem_iter)
+                        images_exem_2, labels_exem_2 = next(data_loader_exem_iter)
 
                     # Concatenate the images and labels of the first batch from data_loader_exem
                     images_s = torch.cat((images_s, images_exem_1), dim=0).to(device)
@@ -171,34 +177,45 @@ def bimeco_training(datasets, args):
 
                     # Randomly sample ratio * batch_size samples from train_dataloader_l
                     try:
-                        images_l, labels_l = next(iter(train_dataloader_l))
+                        images_l, labels_l = next(train_dataloader_l_iter)
                     except StopIteration:
                         train_dataloader_l = torch.utils.data.DataLoader(dataset=train_dataset,
-                                                                        batch_size=int(ratio)*args.batch_size,
+                                                                        batch_size=int(ratio*args.batch_size),
                                                                         shuffle=True)
-                        images_l, labels_l = next(iter(train_dataloader_l))
+                        train_dataloader_l_iter = iter(train_dataloader_l)
+                        images_l, labels_l = next(train_dataloader_l_iter)
 
                     # Concatenate the images and labels of the second batch from data_loader_exem
                     images_l = torch.cat((images_l, images_exem_2), dim=0).to(device)
                     labels_l = torch.cat((labels_l, labels_exem_2), dim=0).to(device)
 
                     # Forward pass
-                    epoch_loss_short, epoch_loss_long = bimeco_train(model_short, model_long, optimizer_short, 
-                                                                     optimizer_long, images_s, labels_s, 
-                                                                     images_l, labels_l, epoch_loss_short, epoch_loss_long, 
-                                                                     args)
-                    
-                epoch_loss_short /= len(train_dataloader_s)
-                epoch_loss_long /= len(train_dataloader_l)
+                    epoch_loss_short, epoch_loss_long, output_short, output_long, diff_images_l, diff_images_s = (
+                                                                    bimeco_train(model_short, model_long, optimizer_short, optimizer_long, 
+                                                                     images_s, labels_s, images_l, labels_l, args)
+                                                                     )
+                    total_epoch_loss_short += epoch_loss_short
+                    total_epoch_loss_long += epoch_loss_long
+                    total_output_short += output_short
+                    total_output_long += output_long
+                    total_diff_images_l += diff_images_l
+                    total_diff_images_s += diff_images_s
 
-                train_loss_epoch = epoch_loss_short + epoch_loss_long
-                print(f"Train loss: {train_loss_epoch}")
+                    
+                # epoch_loss_short /= len(train_dataloader_s)
+                # epoch_loss_long /= len(train_dataloader_l)
+
+                # train_loss_epoch = epoch_loss_short + epoch_loss_long
+                train_loss_epoch = total_epoch_loss_long
+                print(f"Train loss: {total_epoch_loss_long}")
+                print(f"Train loss output short: {total_output_short}")
+                print(f"Train loss output long: {total_output_long}")
+                print(f"Train loss diff images s: {total_diff_images_s}")
+                print(f"Train loss diff images l: {total_diff_images_l}")
+                print(f"Sum diff images: {(total_diff_images_l + total_diff_images_s)*args.bimeco_lambda_diff}")
 
                 # Update the parameters of the long term memory model
-                params_l = model_short.parameters()
-                params_s = model_long.parameters() 
-
-                for param_l, param_s in zip(params_l, params_s):
+                for param_l, param_s in zip(model_long.parameters() ,  model_short.parameters()):
                     param_l.data = args.m * param_l.data + (1 - args.m) * param_s.data
 
                 # Validation
@@ -261,8 +278,8 @@ def bimeco_training(datasets, args):
 
             # Make the dataloader
             data_loader_exem = torch.utils.data.DataLoader(dataset=torch.utils.data.TensorDataset(tensor_exem_img, tensor_exem_label),
-                                                        batch_size=args.batch_size,
-                                                        shuffle=True)
+                                                           batch_size=args.batch_size,
+                                                           shuffle=True)
         
         # Save the results of the training
         save_training_results(dicc_results, workbook, id_task+1, training_name="BiMeCo")
@@ -292,55 +309,90 @@ def normal_train(model, optimizer, data_loader, device):
     print(f"Train loss: {epoch_loss / len(data_loader)}")
     return epoch_loss / len(data_loader)
 
-def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, images_s, labels_s, 
-                                 images_l, labels_l, epoch_loss_short, epoch_loss_long, args):
+def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, images_s, labels_s, images_l, labels_l, args):
+
     model_short.train()
     model_long.train()
 
-
     # Normal loss for the short term memory model
-    optimizer_short.zero_grad()
-    output_short = model_short(images_s)
-    loss_short = F.cross_entropy(output_short, labels_s)
-    epoch_loss_short += loss_short.item()
-    loss_short.backward()
-    optimizer_short.step()
+    # optimizer_short.zero_grad()
+    # output_short = model_short(images_s)
+    # loss_short = F.cross_entropy(output_short, labels_s)
+    # epoch_loss_short += loss_short.item()
+    # loss_short.backward()
+    # optimizer_short.step()
 
     # Combined loss for the long term memory model
-    model_short.eval()
+    # model_short.eval()
+    # optimizer_long.zero_grad()
+    # output_long = model_long(images_l)
+    # output_short = model_short(images_l)
+    # feature_extractor_short = F.normalize(model_short.feature_extractor(images_l))
+    # feature_extractor_long = F.normalize(model_long.feature_extractor(images_l))
+    # diff = (feature_extractor_short - feature_extractor_long) ** 2
+    # loss_long = (args.bimeco_lambda_short * F.cross_entropy(output_long, labels_l) + 
+    #             args.bimeco_lambda_long * F.mse_loss(output_short, output_long) + 
+    #             args.bimeco_lambda_diff * diff.sum())
+    # epoch_loss_long += loss_long.item()
+    # loss_long.backward()
+    # optimizer_long.step()
+
+    # Training the short and long term memory models jointly
+    optimizer_short.zero_grad()
     optimizer_long.zero_grad()
+
+    output_short = model_short(images_s) 
     output_long = model_long(images_l)
-    output_short = model_short(images_l)
-    feature_extractor_short = F.normalize(model_short.feature_extractor(images_l))
-    feature_extractor_long = F.normalize(model_long.feature_extractor(images_l))
-    diff = (feature_extractor_short - feature_extractor_long) ** 2
-    loss_long = (args.bimeco_lambda_short * F.cross_entropy(output_long, labels_l) + 
-                args.bimeco_lambda_long * F.mse_loss(output_short, output_long) + 
-                args.bimeco_lambda_diff * diff.sum())
-    epoch_loss_long += loss_long.item()
-    loss_long.backward()
+
+    feat_ext_short_model_images_s = F.normalize(model_short.feature_extractor(images_s))
+    feat_ext_long_model_images_s = F.normalize(model_long.feature_extractor(images_s))
+    diff_images_s = (feat_ext_short_model_images_s - feat_ext_long_model_images_s) ** 2 
+
+    feat_ext_short_model_images_l = F.normalize(model_short.feature_extractor(images_l))
+    feat_ext_long_model_images_l = F.normalize(model_long.feature_extractor(images_l))
+    diff_images_l = (feat_ext_short_model_images_l - feat_ext_long_model_images_l) ** 2 
+
+    diff = torch.cat((diff_images_s, diff_images_l), dim=0)
+
+    loss = (args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) +
+            args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) +
+            args.bimeco_lambda_diff * diff.sum())
+    
+    epoch_loss_short = loss.item()
+    epoch_loss_long = loss.item()
+    output_short = F.cross_entropy(output_short, labels_s).item() * args.bimeco_lambda_short
+    output_long = F.cross_entropy(output_long, labels_l).item() * args.bimeco_lambda_long
+    diff_images_s = diff_images_s.sum().item() 
+    diff_images_l = diff_images_l.sum().item()
+
+    loss.backward()
+
+    optimizer_short.step()
     optimizer_long.step()
 
-    return epoch_loss_short, epoch_loss_long
+    return epoch_loss_short, epoch_loss_long, output_short, output_long, diff_images_l, diff_images_s
 
 def bimeco_val(model_short, model_long, data_loader, device, args):
-    model_short.eval()
     model_long.eval()
     loss = 0
     with torch.no_grad():
         for input, target in data_loader:
             input, target = input.to(device), target.to(device)
+
             output_long = model_long(input)
-            output_short = model_short(input)
-            feature_extractor_short = F.normalize(model_short.feature_extractor(input))
-            feature_extractor_long = F.normalize(model_long.feature_extractor(input))
-            diff = (feature_extractor_short - feature_extractor_long) ** 2
-            loss += (args.bimeco_lambda_short * F.cross_entropy(output_long, target) + 
-                    args.bimeco_lambda_long * F.mse_loss(output_short, output_long) + 
-                    args.bimeco_lambda_diff * diff.sum())
+            # output_short = model_short(input)
+
+            # feature_extractor_short = F.normalize(model_short.feature_extractor(input))
+            # feature_extractor_long = F.normalize(model_long.feature_extractor(input))
+
+            # diff = (feature_extractor_short - feature_extractor_long) ** 2
+
+            loss += F.cross_entropy(output_long, target)
+            # loss += F.cross_entropy(output_short, target)
+            # loss += diff.sum()
 
     print(f"Val loss: {loss / len(data_loader)}")
-    return loss / len(data_loader)
+    return 1
 
 def normal_val(model, data_loader, device):
     model.eval()
@@ -350,6 +402,7 @@ def normal_val(model, data_loader, device):
             input, target = input.to(device), target.to(device)
             output = model(input)
             loss += F.cross_entropy(output, target)
+
 
     print(f"Val loss: {loss / len(data_loader)}")
     return loss / len(data_loader)
@@ -441,6 +494,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     # Create the exemplar set
     images_ex = torch.empty((0, args.img_channels, args.img_size, args.img_size))
     labels_ex = torch.empty((0), dtype=torch.long)
+
     for class_index in classes_task:
         for image, label in train_dataset:
             if label == class_index:
@@ -459,7 +513,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
         for k in range(m):
             x = class_mean - (feature_extractor_output + now_class_mean ) / (k + 1) # Equation 4
             x = np.linalg.norm(x, axis=1)
-            index = np.argmin(x) # Equation 5        
+            index = np.argmin(x) # Equation 5     
             now_class_mean += feature_extractor_output[index] # Update the current class mean
             exemplar_img.append(images_ex[index]) # Add the exemplar to the exemplar set
             exemplar_label.append(labels_ex[index]) # Add the exemplar label to the exemplar set labels
@@ -468,5 +522,10 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
         exemplar_set_label.append(exemplar_label) # Add the exemplar set labels to the exemplar set labels list
         images_ex = torch.empty((0, args.img_channels, args.img_size, args.img_size)) # Reset the images variable
         labels_ex = torch.empty((0), dtype=torch.long) # Reset the labels variable
+
+    print(f"Number of exemplars per class: {m}")
+    print(f"Number of classes in the current task: {len(classes_task)}")
+    # print(f"Total size of the exemplar set images: {sum([len(exemplar_set_img[i]) for i in range(len(exemplar_set_img))])}")
+    # print(f"Total size of the exemplar set labels: {sum([len(exemplar_set_label[i]) for i in range(len(exemplar_set_label))])}")
 
     return exemplar_set_img, exemplar_set_label      
