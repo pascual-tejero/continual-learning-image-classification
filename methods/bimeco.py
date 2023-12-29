@@ -395,7 +395,7 @@ def bimeco_val(model_short, model_long, data_loader, device):
             # loss += diff.sum()
 
     print(f"Val loss: {loss / len(data_loader)}")
-    return 1
+    return loss / len(data_loader)
 
 def normal_val(model, data_loader, device):
     model.eval()
