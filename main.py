@@ -15,7 +15,6 @@ from methods.rehearsal_training import rehearsal_training
 from methods.ewc import ewc_training
 from methods.lwf import lwf_training
 from methods.bimeco import bimeco_training
-from utils.load_cifar100 import get_CIFAR100_data
 
 
 
