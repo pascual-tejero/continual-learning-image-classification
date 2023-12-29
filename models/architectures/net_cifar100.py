@@ -55,15 +55,6 @@ class Net_cifar100(nn.Module):
         out = self.fc(out)
         return out
 
-    def feature_extractor(self, x):
-        out = F.relu(self.bn1(self.conv1(x)))
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        out = self.avg_pool(out)
-        out = out.view(out.size(0), -1)
-        return out  # Return features before the fully connected layer
-
 
 
 # import torch
