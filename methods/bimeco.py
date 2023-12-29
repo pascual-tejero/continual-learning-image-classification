@@ -220,7 +220,7 @@ def bimeco_training(datasets, args):
 
                 # Validation
                 # val_loss_epoch = normal_val(model_long, val_loader, device)
-                val_loss_epoch = bimeco_val(model_short, model_long, val_loader, device, args)
+                val_loss_epoch = bimeco_val(model_short, model_long, val_loader, device)
 
                 # Test
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model_long, datasets, device, args)
@@ -375,7 +375,7 @@ def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, image
 
     return epoch_loss_short, epoch_loss_long, output_short, output_long, diff_images_l, diff_images_s
 
-def bimeco_val(model_short, model_long, data_loader, device, args):
+def bimeco_val(model_short, model_long, data_loader, device):
     model_long.eval()
     loss = 0
     with torch.no_grad():
