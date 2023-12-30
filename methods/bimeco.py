@@ -140,7 +140,8 @@ def bimeco_training(datasets, args):
             
             train_dataloader_s = train_loader
             train_dataloader_l = torch.utils.data.DataLoader(dataset=train_dataset,
-                                                                batch_size=int(ratio*args.batch_size),
+                                                                batch_size=args.batch_size,
+                                                                # batch_size=int(ratio*args.batch_size),
                                                                 shuffle=True)
             
             train_loss_epoch = 0
@@ -150,7 +151,6 @@ def bimeco_training(datasets, args):
 
             data_loader_exem_iter = iter(data_loader_exem)
             train_dataloader_l_iter = iter(train_dataloader_l)
-
 
             for epoch in range(args.epochs):
                 print("="*100)
@@ -180,7 +180,8 @@ def bimeco_training(datasets, args):
                         images_l, labels_l = next(train_dataloader_l_iter)
                     except StopIteration:
                         train_dataloader_l = torch.utils.data.DataLoader(dataset=train_dataset,
-                                                                        batch_size=int(ratio*args.batch_size),
+                                                                         batch_size=args.batch_size,
+                                                                        # batch_size=int(ratio*args.batch_size),
                                                                         shuffle=True)
                         train_dataloader_l_iter = iter(train_dataloader_l)
                         images_l, labels_l = next(train_dataloader_l_iter)
@@ -272,9 +273,6 @@ def bimeco_training(datasets, args):
             for index in range(len(exemplar_set_img)):
                 tensor_exem_img = torch.cat((tensor_exem_img, torch.stack(exemplar_set_img[index])), dim=0) # Add the exemplar set to the tensor
                 tensor_exem_label = torch.cat((tensor_exem_label, torch.stack(exemplar_set_label[index])), dim=0) # Add the exemplar set labels to the tensor
-
-            print(f"Size of the exemplar set: {len(tensor_exem_img)}")
-            print(f"Size of the exemplar set labels: {len(tensor_exem_label)}")
 
             # Make the dataloader
             data_loader_exem = torch.utils.data.DataLoader(dataset=torch.utils.data.TensorDataset(tensor_exem_img, tensor_exem_label),
@@ -498,12 +496,25 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     images_ex = torch.empty((0, args.img_channels, args.img_size, args.img_size))
     labels_ex = torch.empty((0), dtype=torch.long)
 
-    for class_index in classes_task:
-        for image, label in train_dataset:
-            if label == class_index:
-                images_ex = torch.cat((images_ex, image.unsqueeze(0)), dim=0)
-                labels_ex = torch.cat((labels_ex, label.unsqueeze(0)), dim=0)
+    # for class_index in classes_task:
+    #     for image, label in train_dataset:
+    #         if label == class_index:
+    #             images_ex = torch.cat((images_ex, image.unsqueeze(0)), dim=0)
+    #             labels_ex = torch.cat((labels_ex, label.unsqueeze(0)), dim=0)
         
+    #     print(f"Number of images of class {class_index}: {len(images_ex)}")
+    #     quit()
+
+    # Assuming train_dataset is a list of tuples (image, label)
+    train_images, train_labels = zip(*train_dataset)
+    train_images = torch.stack(train_images)
+    train_labels = torch.stack(train_labels)
+
+    for class_index in classes_task:
+        selected_indexes = torch.where(train_labels == class_index)[0]
+        images_ex = torch.cat((images_ex, train_images[selected_indexes]), dim=0)
+        labels_ex = torch.cat((labels_ex, train_labels[selected_indexes]), dim=0)
+
         # Construct the exemplar set
         feature_extractor_output = F.normalize(model.feature_extractor(images_ex.to(device))).cpu().detach().numpy()
         class_mean = np.mean(feature_extractor_output, axis=0)
@@ -512,14 +523,27 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
         exemplar_label = [] # List to save the exemplar set labels
         now_class_mean = np.zeros((1, args.feature_dim)) # Current class mean
 
+        selected_indexes = set() # Set to save the selected indexes
         # Construct the exemplar set
         for k in range(m):
             x = class_mean - (feature_extractor_output + now_class_mean ) / (k + 1) # Equation 4
             x = np.linalg.norm(x, axis=1)
-            index = np.argmin(x) # Equation 5     
+
+            index = np.argmin(x) # Equation 5  
+
+            if index in selected_indexes:
+                while index in selected_indexes:
+                    if len(x) == len(selected_indexes):
+                        print(f"All the images have been selected for class {class_index}")
+                        break
+                    x[index] = np.inf
+                    index = np.argmin(x)
+                selected_indexes.add(index)
+
             now_class_mean += feature_extractor_output[index] # Update the current class mean
             exemplar_img.append(images_ex[index]) # Add the exemplar to the exemplar set
             exemplar_label.append(labels_ex[index]) # Add the exemplar label to the exemplar set labels
+            selected_indexes.add(index) # Add the index to the set
 
         exemplar_set_img.append(exemplar_img) # Add the exemplar set to the exemplar set list
         exemplar_set_label.append(exemplar_label) # Add the exemplar set labels to the exemplar set labels list
@@ -528,7 +552,6 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
 
     print(f"Number of exemplars per class: {m}")
     print(f"Number of classes in the current task: {len(classes_task)}")
-    # print(f"Total size of the exemplar set images: {sum([len(exemplar_set_img[i]) for i in range(len(exemplar_set_img))])}")
-    # print(f"Total size of the exemplar set labels: {sum([len(exemplar_set_label[i]) for i in range(len(exemplar_set_label))])}")
+    print(f"Total size of the exemplar set images: {sum([len(exemplar_set_img[i]) for i in range(len(exemplar_set_img))])}")
 
     return exemplar_set_img, exemplar_set_label      
