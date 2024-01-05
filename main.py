@@ -67,7 +67,7 @@ def main(args):
     # Create a dictionary to save the results
     dicc_results_test = {}
 
-    # # Train the model using the naive approach (no continual learning) for fine-tuning
+    # Train the model using the naive approach (no continual learning) for fine-tuning
     # dicc_results_test["Fine-tuning"] = naive_training(datasets, args)
 
     # # Train the model using the naive approach (no continual learning) for joint training
@@ -110,11 +110,9 @@ if __name__ == '__main__':
     argparse.add_argument('--lr', type=float, default=0.001) # 0.001
     argparse.add_argument('--lr_decay', type=float, default=5) # 5
     argparse.add_argument('--lr_patience', type=int, default=10) # 10
-    argparse.add_argument('--lr_min', type=float, default=1e-8) # 1e-8
+    argparse.add_argument('--lr_min', type=float, default=1e-6) # 1e-8
     argparse.add_argument('--batch_size', type=int, default=200) # 200
     argparse.add_argument('--num_tasks', type=int, default=2) # 2
-    # argparse.add_argument('--scheduler_step_size', type=int, default=7)
-    # argparse.add_argument('--scheduler_gamma', type=float, default=0.3)
 
     # Dataset parameters: mnist, cifar10, cifar100
     argparse.add_argument('--dataset', type=str, default="cifar100")
@@ -123,12 +121,12 @@ if __name__ == '__main__':
         argparse.add_argument('--img_size', type=int, default=28)
         argparse.add_argument('--img_channels', type=int, default=1)
         argparse.add_argument('--num_classes', type=int, default=10)
-        argparse.add_argument('--feature_dim', type=int, default=64)
+        argparse.add_argument('--feature_dim', type=int, default=320)
     elif argparse.parse_args().dataset == "cifar10":
         argparse.add_argument('--img_size', type=int, default=32)
         argparse.add_argument('--img_channels', type=int, default=3)
         argparse.add_argument('--num_classes', type=int, default=10)
-        argparse.add_argument('--feature_dim', type=int, default=64)
+        argparse.add_argument('--feature_dim', type=int, default=2048)
     elif argparse.parse_args().dataset == "cifar100":
         argparse.add_argument('--img_size', type=int, default=32)
         argparse.add_argument('--img_channels', type=int, default=3)
@@ -151,3 +149,5 @@ if __name__ == '__main__':
 
     # Run the main function
     main(argparse.parse_args())
+
+    

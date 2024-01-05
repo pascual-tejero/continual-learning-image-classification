@@ -511,6 +511,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     train_labels = torch.stack(train_labels)
 
     for class_index in classes_task:
+        print(f"Class index: {class_index}")
         selected_indexes = torch.where(train_labels == class_index)[0]
         images_ex = torch.cat((images_ex, train_images[selected_indexes]), dim=0)
         labels_ex = torch.cat((labels_ex, train_labels[selected_indexes]), dim=0)
@@ -522,11 +523,14 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
         exemplar_img = [] # List to save the exemplar set
         exemplar_label = [] # List to save the exemplar set labels
         now_class_mean = np.zeros((1, args.feature_dim)) # Current class mean
+        # print(f"Shape feature extractor output: {feature_extractor_output.shape}")
+        # print(f"Shape class mean: {class_mean.shape}")
+        # print(f"Shape now class mean: {now_class_mean.shape}")
 
         selected_indexes = set() # Set to save the selected indexes
         # Construct the exemplar set
         for k in range(m):
-            x = class_mean - (feature_extractor_output + now_class_mean ) / (k + 1) # Equation 4
+            x = class_mean - (feature_extractor_output + now_class_mean) / (k + 1) # Equation 4
             x = np.linalg.norm(x, axis=1)
 
             index = np.argmin(x) # Equation 5  

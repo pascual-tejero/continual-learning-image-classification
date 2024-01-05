@@ -40,6 +40,21 @@ class Net_cifar10(nn.Module):
         x = self.fc2(x)
 
         return x
+    
+    def feature_extractor(self, x):
+        x = self.conv1(x)
+        x = self.relu1(x)
+        x = self.maxpool1(x)
+
+        x = self.conv2(x)
+        x = self.relu2(x)
+        x = self.maxpool2(x)
+
+        x = self.conv3(x)
+        x = self.relu3(x)
+        x = self.maxpool3(x)
+
+        return self.flatten(x)
 
 # class Net_cifar10(nn.Module):
 #     """
