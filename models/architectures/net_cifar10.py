@@ -54,7 +54,11 @@ class Net_cifar10(nn.Module):
         x = self.relu3(x)
         x = self.maxpool3(x)
 
-        return self.flatten(x)
+        x = self.flatten(x)
+        x = self.fc1(x)
+        x = self.relu4(x)
+        
+        return x  # Return features before the fully connected layer
 
 # class Net_cifar10(nn.Module):
 #     """

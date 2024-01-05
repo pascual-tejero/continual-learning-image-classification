@@ -68,25 +68,25 @@ def main(args):
     dicc_results_test = {}
 
     # Train the model using the naive approach (no continual learning) for fine-tuning
-    # dicc_results_test["Fine-tuning"] = naive_training(datasets, args)
+    dicc_results_test["Fine-tuning"] = naive_training(datasets, args)
 
-    # # Train the model using the naive approach (no continual learning) for joint training
-    # dicc_results_test["Joint datasets"] = naive_training(datasets, args, joint_datasets=True)
+    # Train the model using the naive approach (no continual learning) for joint training
+    dicc_results_test["Joint datasets"] = naive_training(datasets, args, joint_datasets=True)
 
-    # # Train the model using the rehearsal approach
-    # dicc_results_test["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
-    # dicc_results_test["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
-    # dicc_results_test["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
+    # Train the model using the rehearsal approach
+    dicc_results_test["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
+    dicc_results_test["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
+    dicc_results_test["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
 
-    # # Train the model using the EWC approach
-    # dicc_results_test["EWC"] = ewc_training(datasets, args)
+    # Train the model using the EWC approach
+    dicc_results_test["EWC"] = ewc_training(datasets, args)
 
-    # # Train the model using the LwF approach
-    # dicc_results_test["LwF"] = lwf_training(datasets, args)
-    # dicc_results_test["LwF criterion"] = lwf_training(datasets, args, aux_training=False, criterion_bool=True)
+    # Train the model using the LwF approach
+    dicc_results_test["LwF"] = lwf_training(datasets, args)
+    dicc_results_test["LwF criterion"] = lwf_training(datasets, args, aux_training=False, criterion_bool=True)
 
-    # dicc_results_test["LwF Aux"] = lwf_training(datasets, args, aux_training=True)
-    # dicc_results_test["LwF Aux criterion"] = lwf_training(datasets, args, aux_training=True, criterion_bool=True)
+    dicc_results_test["LwF Aux"] = lwf_training(datasets, args, aux_training=True)
+    dicc_results_test["LwF Aux criterion"] = lwf_training(datasets, args, aux_training=True, criterion_bool=True)
 
     # Train the model using the BiMeCo approach
     dicc_results_test["BiMeCo"] = bimeco_training(datasets, args)
@@ -115,7 +115,7 @@ if __name__ == '__main__':
     argparse.add_argument('--num_tasks', type=int, default=2) # 2
 
     # Dataset parameters: mnist, cifar10, cifar100
-    argparse.add_argument('--dataset', type=str, default="cifar100")
+    argparse.add_argument('--dataset', type=str, default="mnist")
 
     if argparse.parse_args().dataset == "mnist":
         argparse.add_argument('--img_size', type=int, default=28)
@@ -126,7 +126,7 @@ if __name__ == '__main__':
         argparse.add_argument('--img_size', type=int, default=32)
         argparse.add_argument('--img_channels', type=int, default=3)
         argparse.add_argument('--num_classes', type=int, default=10)
-        argparse.add_argument('--feature_dim', type=int, default=2048)
+        argparse.add_argument('--feature_dim', type=int, default=512)
     elif argparse.parse_args().dataset == "cifar100":
         argparse.add_argument('--img_size', type=int, default=32)
         argparse.add_argument('--img_channels', type=int, default=3)
