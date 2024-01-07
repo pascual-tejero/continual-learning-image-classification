@@ -115,7 +115,7 @@ def bimeco_training(datasets, args):
 
         else:
             path_model = (f"./models/models_saved/{args.exp_name}/BiMeCo_{args.dataset}/"
-                          f"model_BiMeCo_aftertask_{id_task}_{args.dataset}.pt")
+                          f"BiMeCo_aftertask_{id_task}_{args.dataset}.pt")
             
             # Load model for short term memory
             model_short = copy.deepcopy(model) 

@@ -8,6 +8,7 @@ import argparse
 from utils.get_dataset_mnist import get_dataset_mnist
 from utils.get_dataset_cifar10 import get_dataset_cifar10
 from utils.get_dataset_cifar100 import get_dataset_cifar100
+from utils.get_dataset_cifar100_alternative_dist import get_dataset_cifar100_alternative_dist
 from utils.save_global_results import save_global_results
 
 from methods.naive_training import naive_training
@@ -63,6 +64,8 @@ def main(args):
         datasets = get_dataset_cifar10(args)
     elif args.dataset == "cifar100":
         datasets = get_dataset_cifar100(args)
+    elif args.dataset == "cifar100_alternative_dist":
+        datasets = get_dataset_cifar100_alternative_dist(args)
     
     # Create a dictionary to save the results
     dicc_results_test = {}
@@ -114,8 +117,8 @@ if __name__ == '__main__':
     argparse.add_argument('--batch_size', type=int, default=200) # 200
     argparse.add_argument('--num_tasks', type=int, default=2) # 2
 
-    # Dataset parameters: mnist, cifar10, cifar100
-    argparse.add_argument('--dataset', type=str, default="mnist")
+    # Dataset parameters: mnist, cifar10, cifar100, cifar100_alternative_dist
+    argparse.add_argument('--dataset', type=str, default="cifar100")
 
     if argparse.parse_args().dataset == "mnist":
         argparse.add_argument('--img_size', type=int, default=28)
@@ -137,14 +140,14 @@ if __name__ == '__main__':
     argparse.add_argument('--ewc_lambda' , type=float, default=1000) # 1000
 
     # Distillation parameters (LwF)
-    argparse.add_argument('--lwf_lambda' , type=float, default=1) # 1
-    argparse.add_argument('--lwf_aux_lambda' , type=float, default=0.5) # 0.5
+    argparse.add_argument('--lwf_lambda' , type=float, default=0.80) # 1
+    argparse.add_argument('--lwf_aux_lambda' , type=float, default=0.75) # 0.5
 
     # BiMeCo parameters
     argparse.add_argument('--memory_size' , type=float, default=25000)
-    argparse.add_argument('--bimeco_lambda_short' , type=float, default=0.5)
-    argparse.add_argument('--bimeco_lambda_long' , type=float, default=0.5)
-    argparse.add_argument('--bimeco_lambda_diff' , type=float, default=0.5)
+    argparse.add_argument('--bimeco_lambda_short' , type=float, default=1.5)
+    argparse.add_argument('--bimeco_lambda_long' , type=float, default=2.5)
+    argparse.add_argument('--bimeco_lambda_diff' , type=float, default=4)
     argparse.add_argument('--m' , type=float, default=0.5) # Momentum
 
     # Run the main function

@@ -176,7 +176,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
             old_model = copy.deepcopy(model).to(device)
 
             path_old_model = (f"./models/models_saved/{args.exp_name}/lwf_{args.dataset}/"
-                            f"model_lwf_aftertask_{id_task}_{args.dataset}.pt")
+                            f"LwF_aftertask_{id_task}_{args.dataset}.pt")
             old_model.load_state_dict(torch.load(path_old_model))
             old_model.eval()
 
@@ -246,7 +246,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
         save_training_results(dicc_results, workbook, id_task+1, training_name="LwF")
 
         # Save the model
-        save_model(model_best, args, id_task+1, method="lwf")
+        save_model(model_best, args, id_task+1, method="LwF")
 
     # Close the excel file
     workbook.close()

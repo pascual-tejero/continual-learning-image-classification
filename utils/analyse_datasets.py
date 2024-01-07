@@ -57,9 +57,10 @@ def analyse_datasets(datasets, args):
         count_test = dict(sorted(count_test.items()))
 
         # Print the results
-        print(f"Train set {idx+1}: {count_train}")
-        print(f"Val set {idx+1}: {count_val}")
-        print(f"Test set {idx+1}: {count_test}")
+        print(f"TASK {idx+1}: \n")
+        print(f" - Train set {idx+1}: {count_train} \n")
+        print(f" - Val set {idx+1}: {count_val} \n")
+        print(f" - Test set {idx+1}: {count_test}")
         print("=" * 130)
     
 

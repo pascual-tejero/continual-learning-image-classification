@@ -148,7 +148,7 @@ def ewc_training(datasets, args):
 
             # Load the previous model
             path_old_model = (f"./models/models_saved/{args.exp_name}/ewc_{args.dataset}/"
-                              f"model_ewc_aftertask_{id_task}_{args.dataset}.pt")
+                              f"EWC_aftertask_{id_task}_{args.dataset}.pt")
             old_model.load_state_dict(torch.load(path_old_model))
                                                             
             for epoch in range(args.epochs):
@@ -211,7 +211,7 @@ def ewc_training(datasets, args):
         save_training_results(dicc_results, workbook, id_task+1, training_name="EWC")
 
         # Save the model
-        save_model(model_best, args, id_task+1, method="ewc")
+        save_model(model_best, args, id_task+1, method="EWC")
 
     # Close the excel file
     workbook.close()
