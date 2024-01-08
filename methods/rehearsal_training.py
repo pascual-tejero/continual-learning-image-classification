@@ -42,7 +42,7 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
         model = Net_mnist().to(device) # Instantiate the mod
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device) # Instantiate the model
-    elif args.dataset == "cifar100":
+    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
         model = Net_cifar100().to(device) # Instantiate the model
 
     for id_task, task in enumerate(datasets):

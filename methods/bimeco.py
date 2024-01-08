@@ -34,10 +34,37 @@ def bimeco_training(datasets, args):
     # Create the excel file
     if args.dataset == "mnist":
         model = Net_mnist().to(device)  # Instantiate the model
+        num_classes = 10
+        img_size = 28
+        img_channels = 1
+        feature_dim = 320
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device)  # Instantiate the model
-    elif args.dataset == "cifar100":
+        num_classes = 10
+        img_size = 32
+        img_channels = 3
+        feature_dim = 512
+    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
         model = Net_cifar100().to(device)  # Instantiate the model
+        num_classes = 100
+        img_size = 32
+        img_channels = 3
+        feature_dim = 64
+
+    # Create variables depending on the dataset
+    if args.dataset == "mnist":
+        img_size = 28
+        img_channels = 1
+        feature_dim = 320
+    elif args.dataset == "cifar10":
+        img_size = 32
+        img_channels = 3
+        feature_dim = 512
+    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
+        img_size = 32
+        img_channels = 3
+        feature_dim = 64
+
 
     for id_task, task in enumerate(datasets):
         print("="*100)
@@ -130,8 +157,8 @@ def bimeco_training(datasets, args):
             optimizer_long = optim.Adam(model_long.parameters(), lr=args.lr)  # Instantiate the optimizer
 
             # Create the tasks dictionary to know the classes of each task
-            list_tasks = [args.num_classes // args.num_tasks * i for i in range(1, args.num_tasks + 1)]
-            list_tasks[-1] = min(args.num_classes, list_tasks[-1])
+            list_tasks = [num_classes // args.num_tasks * i for i in range(1, args.num_tasks + 1)]
+            list_tasks[-1] = min(num_classes, list_tasks[-1])
 
             tasks_dict = {i: list(range(list_tasks[i-1] if i > 0 else 0, list_tasks[i])) for i in range(args.num_tasks)}
 
@@ -265,9 +292,9 @@ def bimeco_training(datasets, args):
         # Update memory buffer
         if id_task != args.num_tasks-1:
             exemplar_set_img, exemplar_set_label = after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, 
-                                                            device, id_task, args)
+                                                            device, id_task, args, img_channels, img_size, feature_dim, num_classes)
 
-            tensor_exem_img = torch.empty((0, args.img_channels, args.img_size, args.img_size)) # Tensor to save the exemplar set
+            tensor_exem_img = torch.empty((0, img_channels, img_size, img_size)) # Tensor to save the exemplar set
             tensor_exem_label = torch.empty((0), dtype=torch.long) # Tensor to save the exemplar set labels
 
             for index in range(len(exemplar_set_img)):
@@ -465,7 +492,8 @@ def append_results(dicc_results, id_task, epoch, train_loss_epoch, val_loss_epoc
 
     return dicc_results 
 
-def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, device, id_task, args):
+def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, device, id_task, args,
+                img_channels, img_size, feature_dim, num_classes):
     """
     Construct exemplar sets for each task using the iCaRL strategy.
     """
@@ -475,7 +503,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
 
     model.eval() # Set the model to evaluation mode
 
-    m = int(args.memory_size / args.num_classes)  # Number of exemplars per class
+    m = int(args.memory_size / num_classes)  # Number of exemplars per class
 
     # Reduce exemplar set to the maximum size
     exemplar_set_img = [cls[:m] for cls in exemplar_set_img]
@@ -483,8 +511,8 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     print(f"Size of class {index} exemplar: {len(exemplar_set_img[index])}" for index in range(len(exemplar_set_img)))
 
     # Create the tasks dictionary to know the classes of each task
-    list_tasks = [args.num_classes // args.num_tasks * i for i in range(1, args.num_tasks + 1)]
-    list_tasks[-1] = min(args.num_classes, list_tasks[-1])
+    list_tasks = [num_classes // args.num_tasks * i for i in range(1, args.num_tasks + 1)]
+    list_tasks[-1] = min(num_classes, list_tasks[-1])
 
     tasks_dict = {i: list(range(list_tasks[i-1] if i > 0 else 0, list_tasks[i])) for i in range(args.num_tasks)}
 
@@ -493,7 +521,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     print(f"Classes of the current task: {classes_task}")
 
     # Create the exemplar set
-    images_ex = torch.empty((0, args.img_channels, args.img_size, args.img_size))
+    images_ex = torch.empty((0, img_channels, img_size, img_size))
     labels_ex = torch.empty((0), dtype=torch.long)
 
     # for class_index in classes_task:
@@ -522,7 +550,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
 
         exemplar_img = [] # List to save the exemplar set
         exemplar_label = [] # List to save the exemplar set labels
-        now_class_mean = np.zeros((1, args.feature_dim)) # Current class mean
+        now_class_mean = np.zeros((1, feature_dim)) # Current class mean
         # print(f"Shape feature extractor output: {feature_extractor_output.shape}")
         # print(f"Shape class mean: {class_mean.shape}")
         # print(f"Shape now class mean: {now_class_mean.shape}")
@@ -551,7 +579,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
 
         exemplar_set_img.append(exemplar_img) # Add the exemplar set to the exemplar set list
         exemplar_set_label.append(exemplar_label) # Add the exemplar set labels to the exemplar set labels list
-        images_ex = torch.empty((0, args.img_channels, args.img_size, args.img_size)) # Reset the images variable
+        images_ex = torch.empty((0, img_channels, img_size, img_size))
         labels_ex = torch.empty((0), dtype=torch.long) # Reset the labels variable
 
     print(f"Number of exemplars per class: {m}")

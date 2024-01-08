@@ -45,7 +45,7 @@ def ewc_training(datasets, args):
         model = Net_mnist().to(device) # Instantiate the model
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device) # Instantiate the model
-    elif args.dataset == "cifar100":
+    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
         model = Net_cifar100().to(device) # Instantiate the model
 
     for id_task, task in enumerate(datasets):
@@ -147,7 +147,7 @@ def ewc_training(datasets, args):
             old_model = copy.deepcopy(model)
 
             # Load the previous model
-            path_old_model = (f"./models/models_saved/{args.exp_name}/ewc_{args.dataset}/"
+            path_old_model = (f"./models/models_saved/{args.exp_name}/EWC_{args.dataset}/"
                               f"EWC_aftertask_{id_task}_{args.dataset}.pt")
             old_model.load_state_dict(torch.load(path_old_model))
                                                             
