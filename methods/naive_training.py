@@ -62,7 +62,7 @@ def naive_training(datasets, args, joint_datasets=False):
         model = Net_mnist().to(device) 
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device) 
-    elif args.dataset == "cifar100":
+    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
         model = Net_cifar100().to(device)
 
     for id_task, task in enumerate(datasets):

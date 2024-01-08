@@ -35,7 +35,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
         model = Net_mnist().to(device)  # Instantiate the model
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device)  # Instantiate the model
-    elif args.dataset == "cifar100":
+    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
         model = Net_cifar100().to(device)  # Instantiate the model
 
     for id_task, task in enumerate(datasets):
@@ -170,12 +170,12 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                     if epoch == args.epochs-1:
                         auxiliar_network = copy.deepcopy(model_best_aux).to(device)
                         
-                save_model(auxiliar_network, args, id_task+1, method="lwf_aux")
+                save_model(auxiliar_network, args, id_task+1, method="LwF_aux")
             
             # Load the previous model
             old_model = copy.deepcopy(model).to(device)
 
-            path_old_model = (f"./models/models_saved/{args.exp_name}/lwf_{args.dataset}/"
+            path_old_model = (f"./models/models_saved/{args.exp_name}/LwF_{args.dataset}/"
                             f"LwF_aftertask_{id_task}_{args.dataset}.pt")
             old_model.load_state_dict(torch.load(path_old_model))
             old_model.eval()
