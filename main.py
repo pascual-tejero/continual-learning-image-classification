@@ -17,43 +17,6 @@ from methods.ewc import ewc_training
 from methods.lwf import lwf_training
 from methods.bimeco import bimeco_training
 
-# def get_args_parser():
-#     """
-#     This function is used to get the arguments from the command line.
-
-#     :return: arguments from the command line
-#     """
-#     parser = argparse.ArgumentParser()
-
-#     # General parameters
-#     parser.add_argument('--exp_name', type=str, default="test")
-#     parser.add_argument('--seed', type=int, default=0)
-#     parser.add_argument('--epochs', type=int, default=1) # 500
-#     parser.add_argument('--lr', type=float, default=0.001) # 0.001
-#     parser.add_argument('--lr_decay', type=float, default=5) # 5
-#     parser.add_argument('--lr_patience', type=int, default=10) # 10
-#     parser.add_argument('--lr_min', type=float, default=1e-6) # 1e-8
-#     parser.add_argument('--batch_size', type=int, default=200) # 200
-#     parser.add_argument('--num_tasks', type=int, default=2) # 2
-
-#     # Dataset parameters: mnist, cifar10, cifar100, cifar100_alternative_dist
-#     parser.add_argument('--dataset', type=str, default="cifar100")
-
-#     # EWC parameters
-#     parser.add_argument('--ewc_lambda' , type=float, default=1000) # 1000
-
-#     # Distillation parameters (LwF)
-#     parser.add_argument('--lwf_lambda' , type=float, default=0.80) # 1
-#     parser.add_argument('--lwf_aux_lambda' , type=float, default=0.75) # 0.5
-
-#     # BiMeCo parameters
-#     parser.add_argument('--memory_size' , type=float, default=25000)
-#     parser.add_argument('--bimeco_lambda_short' , type=float, default=1.5)
-#     parser.add_argument('--bimeco_lambda_long' , type=float, default=2.5)
-#     parser.add_argument('--bimeco_lambda_diff' , type=float, default=4)
-#     parser.add_argument('--m' , type=float, default=0.5) # Momentum
-
-#     return parser.parse_args()
 
 def main(args):
     """
