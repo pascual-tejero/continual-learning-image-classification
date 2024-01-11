@@ -56,12 +56,26 @@ def analyse_datasets(datasets, args):
         count_val = dict(sorted(count_val.items()))
         count_test = dict(sorted(count_test.items()))
 
-        # Print the results
+        # Count the total number of images per set
+        count_train_num = sum(count_train.values())
+        count_val_num = sum(count_val.values())
+        count_test_num = sum(count_test.values())
+
+        # Print the results in the terminal
         print(f"TASK {idx+1}: \n")
-        print(f" - Train set {idx+1}: {count_train} \n")
-        print(f" - Val set {idx+1}: {count_val} \n")
-        print(f" - Test set {idx+1}: {count_test}")
+        print(f" - Train set {idx+1} -> TOTAL: {count_train_num} /// {count_train} \n")
+        print(f" - Val set {idx+1} -> TOTAL: {count_val_num} ///  {count_val} \n")
+        print(f" - Test set {idx+1} -> TOTAL: {count_test_num} /// {count_test} \n")
         print("=" * 130)
+
+        # Save the results in a .txt file
+        # with open(f'./results/{args.exp_name}/args_{args.exp_name}_{args.dataset}.txt', 'w') as f:
+        #     f.write(f"TASK {idx+1}: \n")
+        #     f.write(f" - Train set {idx+1} -> TOTAL: {count_train_num} /// {count_train} \n")
+        #     f.write(f" - Val set {idx+1} -> TOTAL: {count_val_num} ///  {count_val} \n")
+        #     f.write(f" - Test set {idx+1} -> TOTAL: {count_test_num} /// {count_test} \n")
+        #     f.write("=" * 130)
+        #     f.write("\n")
     
 
 

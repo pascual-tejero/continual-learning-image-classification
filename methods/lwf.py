@@ -172,6 +172,10 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                         
                 save_model(auxiliar_network, args, id_task+1, method="LwF_aux")
             
+                auxiliar_network.eval()
+                for param in auxiliar_network.parameters():
+                    param.requires_grad = False
+                
             # Load the previous model
             old_model = copy.deepcopy(model).to(device)
 
