@@ -458,7 +458,6 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
         # Create the tasks dictionary to know the classes of each task
         list_tasks = [num_classes // args.num_tasks * i for i in range(1, args.num_tasks + 1)]
         list_tasks[-1] = min(num_classes, list_tasks[-1])
-
     tasks_dict = {i: list(range(list_tasks[i-1] if i > 0 else 0, list_tasks[i])) for i in range(args.num_tasks)}
 
     # Take the classes of the current task 
