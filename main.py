@@ -113,9 +113,9 @@ if __name__ == '__main__':
     argparse = argparse.ArgumentParser()
 
     # General parameters
-    argparse.add_argument('--exp_name', type=str, default="test")
+    argparse.add_argument('--exp_name', type=str, default="cifar100_alternative_dist")
     argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--epochs', type=int, default=1) # 500
+    argparse.add_argument('--epochs', type=int, default=500) # 500
     argparse.add_argument('--lr', type=float, default=0.001) # 0.001
     argparse.add_argument('--lr_decay', type=float, default=5) # 5
     argparse.add_argument('--lr_patience', type=int, default=10) # 10
