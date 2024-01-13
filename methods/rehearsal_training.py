@@ -297,7 +297,7 @@ def test_epoch(model, device, datasets, args):
             avg_accurracy += accuracy
 
             # Append the results to the lists
-            test_tasks_id.append(id_task + 1)
+            test_tasks_id.append(id_task+1)
             test_tasks_loss.append(test_loss)
             test_tasks_accuracy.append(accuracy)
 

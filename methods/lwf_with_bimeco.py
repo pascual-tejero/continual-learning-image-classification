@@ -560,7 +560,7 @@ def test(model, datasets, device, args):
         accuracy = 100. * correct / len(test_loader.dataset)
         avg_acc += accuracy
 
-        test_task_list.append(id_task_test)
+        test_task_list.append(id_task_test+1)
         test_loss_list.append(test_loss)
         test_acc_list.append(accuracy)
 
