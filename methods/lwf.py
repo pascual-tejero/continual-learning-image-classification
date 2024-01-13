@@ -25,7 +25,19 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
     print("Training on LwF approach...")
     print("="*100)
 
-    path_file = f'./results/{args.exp_name}/lwf_{args.dataset}.xlsx'
+    if aux_training and not criterion_bool:
+        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_aux_training_{args.dataset}.xlsx'
+        method_cl = "LwF_BiMeCo_aux_training"
+    elif not aux_training and criterion_bool:
+        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_criterion_{args.dataset}.xlsx'
+        method_cl = "LwF_BiMeCo_criterion"
+    elif aux_training and criterion_bool:
+        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_aux_training_criterion_{args.dataset}.xlsx'
+        method_cl = "LwF_BiMeCo_aux_training_criterion"
+    else:
+        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_{args.dataset}.xlsx'
+        method_cl = "LwF_BiMeCo"
+
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
     test_acc_final = []  # List to save the average accuracy of each task
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -123,23 +135,13 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                 auxiliar_network = copy.deepcopy(model_best).to(device)
                 optimizer_aux = optim.Adam(auxiliar_network.parameters(), lr=args.lr)  # Instantiate the optimizer
 
-
                 for epoch in range(args.epochs):
                     print("="*100)
                     print("Train the auxiliar network...")
                     print(f"METHOD: LwF -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
-                    # train_loss_epoch_aux = normal_train(auxiliar_network, optimizer_aux, train_loader)
-
-                    # val_loss_epoch_aux = normal_val(auxiliar_network, val_loader)
-
-                    # test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(auxiliar_network, 
-                    #                                                                          datasets, 
-                    #                                                                          args)
                     normal_train(auxiliar_network, optimizer_aux, train_loader, criterion_bool)
-
                     val_loss_epoch_aux = normal_val(auxiliar_network, val_loader, criterion_bool)
-
                     test(auxiliar_network, datasets, args)
 
                     # Early stopping
@@ -170,7 +172,8 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                     if epoch == args.epochs-1:
                         auxiliar_network = copy.deepcopy(model_best_aux).to(device)
                         
-                save_model(auxiliar_network, args, id_task+1, method="LwF_aux")
+                torch.save(auxiliar_network.state_dict(), (f"./models/models_saved/{args.exp_name}/{method_cl}_{args.dataset}/"
+                                                           f"Aux_Network_task_{id_task+1}_{args.dataset}.pt"))
             
                 auxiliar_network.eval()
                 for param in auxiliar_network.parameters():
@@ -179,8 +182,8 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
             # Load the previous model
             old_model = copy.deepcopy(model).to(device)
 
-            path_old_model = (f"./models/models_saved/{args.exp_name}/LwF_{args.dataset}/"
-                            f"LwF_aftertask_{id_task}_{args.dataset}.pt")
+            path_old_model = (f"./models/models_saved/{args.exp_name}/{method_cl}_{args.dataset}/"
+                            f"{method_cl}_aftertask_{id_task}_{args.dataset}.pt")
             old_model.load_state_dict(torch.load(path_old_model))
             old_model.eval()
 
@@ -250,7 +253,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
         save_training_results(dicc_results, workbook, id_task+1, training_name="LwF")
 
         # Save the model
-        save_model(model_best, args, id_task+1, method="LwF")
+        save_model(model_best, args, id_task+1, method=method_cl)
 
     # Close the excel file
     workbook.close()

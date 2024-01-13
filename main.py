@@ -4,7 +4,6 @@ import platform
 import shutil
 import argparse
 
-
 from utils.get_dataset_mnist import get_dataset_mnist
 from utils.get_dataset_cifar10 import get_dataset_cifar10
 from utils.get_dataset_cifar100 import get_dataset_cifar100
@@ -16,44 +15,8 @@ from methods.rehearsal_training import rehearsal_training
 from methods.ewc import ewc_training
 from methods.lwf import lwf_training
 from methods.bimeco import bimeco_training
+from methods.lwf_with_bimeco import lwf_with_bimeco
 
-# def get_args_parser():
-#     """
-#     This function is used to get the arguments from the command line.
-
-#     :return: arguments from the command line
-#     """
-#     parser = argparse.ArgumentParser()
-
-#     # General parameters
-#     parser.add_argument('--exp_name', type=str, default="test")
-#     parser.add_argument('--seed', type=int, default=0)
-#     parser.add_argument('--epochs', type=int, default=1) # 500
-#     parser.add_argument('--lr', type=float, default=0.001) # 0.001
-#     parser.add_argument('--lr_decay', type=float, default=5) # 5
-#     parser.add_argument('--lr_patience', type=int, default=10) # 10
-#     parser.add_argument('--lr_min', type=float, default=1e-6) # 1e-8
-#     parser.add_argument('--batch_size', type=int, default=200) # 200
-#     parser.add_argument('--num_tasks', type=int, default=2) # 2
-
-#     # Dataset parameters: mnist, cifar10, cifar100, cifar100_alternative_dist
-#     parser.add_argument('--dataset', type=str, default="cifar100")
-
-#     # EWC parameters
-#     parser.add_argument('--ewc_lambda' , type=float, default=1000) # 1000
-
-#     # Distillation parameters (LwF)
-#     parser.add_argument('--lwf_lambda' , type=float, default=0.80) # 1
-#     parser.add_argument('--lwf_aux_lambda' , type=float, default=0.75) # 0.5
-
-#     # BiMeCo parameters
-#     parser.add_argument('--memory_size' , type=float, default=25000)
-#     parser.add_argument('--bimeco_lambda_short' , type=float, default=1.5)
-#     parser.add_argument('--bimeco_lambda_long' , type=float, default=2.5)
-#     parser.add_argument('--bimeco_lambda_diff' , type=float, default=4)
-#     parser.add_argument('--m' , type=float, default=0.5) # Momentum
-
-#     return parser.parse_args()
 
 def main(args):
     """
@@ -111,26 +74,31 @@ def main(args):
     # # Train the model using the naive approach (no continual learning) for fine-tuning
     # dicc_results_test["Fine-tuning"] = naive_training(datasets, args)
 
-    # # # Train the model using the naive approach (no continual learning) for joint training
+    # # Train the model using the naive approach (no continual learning) for joint training
     # dicc_results_test["Joint datasets"] = naive_training(datasets, args, joint_datasets=True)
 
-    # # # Train the model using the rehearsal approach
+    # # Train the model using the rehearsal approach
     # dicc_results_test["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
     # dicc_results_test["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
     # dicc_results_test["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
 
-    # # # Train the model using the EWC approach
+    # # Train the model using the EWC approach
     # dicc_results_test["EWC"] = ewc_training(datasets, args)
 
-    # # # Train the model using the LwF approach
+    # # Train the model using the LwF approach
     # dicc_results_test["LwF"] = lwf_training(datasets, args)
     # dicc_results_test["LwF criterion"] = lwf_training(datasets, args, aux_training=False, criterion_bool=True)
 
     # dicc_results_test["LwF Aux"] = lwf_training(datasets, args, aux_training=True)
     # dicc_results_test["LwF Aux criterion"] = lwf_training(datasets, args, aux_training=True, criterion_bool=True)
 
-    # Train the model using the BiMeCo approach
+    # # Train the model using the BiMeCo approach
     dicc_results_test["BiMeCo"] = bimeco_training(datasets, args)
+
+    dicc_results_test["LwF + BiMeCo"] = lwf_with_bimeco(datasets, args)
+    dicc_results_test["LwF + BiMeCo criterion"] = lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=True)
+    dicc_results_test["LwF Aux + BiMeCo Aux"] = lwf_with_bimeco(datasets, args, aux_training=True)
+    dicc_results_test["LwF Aux + BiMeCo Aux criterion"] = lwf_with_bimeco(datasets, args, aux_training=True, criterion_bool=True)
 
     # Save the results
     save_global_results(dicc_results_test, args)
@@ -145,9 +113,9 @@ if __name__ == '__main__':
     argparse = argparse.ArgumentParser()
 
     # General parameters
-    argparse.add_argument('--exp_name', type=str, default="test")
+    argparse.add_argument('--exp_name', type=str, default="cifar100_alternative_dist")
     argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--epochs', type=int, default=1) # 500
+    argparse.add_argument('--epochs', type=int, default=500) # 500
     argparse.add_argument('--lr', type=float, default=0.001) # 0.001
     argparse.add_argument('--lr_decay', type=float, default=5) # 5
     argparse.add_argument('--lr_patience', type=int, default=10) # 10
