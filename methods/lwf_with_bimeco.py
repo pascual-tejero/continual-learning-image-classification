@@ -2,7 +2,6 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-
 import xlsxwriter
 import os
 import sys
@@ -17,7 +16,6 @@ from utils.utils import save_model
 from models.architectures.net_mnist import Net_mnist
 from models.architectures.net_cifar10 import Net_cifar10
 from models.architectures.net_cifar100 import Net_cifar100
-
 
 def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
 
@@ -82,15 +80,13 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
 
         train_dataset, val_dataset, _ = task  # Get the images and labels from the task
 
-
         # Make the dataloader
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                                 batch_size=args.batch_size,
                                                 shuffle=True)
         val_loader = torch.utils.data.DataLoader(dataset=val_dataset,
                                                 batch_size=args.batch_size,
-                                                shuffle=True)
-        
+                                                shuffle=True)      
         if id_task == 0:
 
             for epoch in range(args.epochs):
@@ -640,7 +636,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
 
     # Take the classes of the current task 
     classes_task = [cls for cls in tasks_dict[id_task]]
-    print(f"Classes of the current task: {classes_task}")
+    print(f"Creating the exemplar set for classes: {classes_task}")
 
     # Create the exemplar set
     images_ex = torch.empty((0, img_channels, img_size, img_size))

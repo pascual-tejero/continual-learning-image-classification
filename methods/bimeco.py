@@ -462,7 +462,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
 
     # Take the classes of the current task 
     classes_task = [cls for cls in tasks_dict[id_task]]
-    print(f"Classes of the current task: {classes_task}")
+    print(f"Creating the exemplar set for classes: {classes_task}")
 
     # Create the exemplar set
     images_ex = torch.empty((0, img_channels, img_size, img_size))
