@@ -89,16 +89,16 @@ def main(args):
     dicc_results_test["LwF"] = lwf_training(datasets, args)
     dicc_results_test["LwF criterion"] = lwf_training(datasets, args, aux_training=False, criterion_bool=True)
 
-    dicc_results_test["LwF Aux"] = lwf_training(datasets, args, aux_training=True)
-    dicc_results_test["LwF Aux criterion"] = lwf_training(datasets, args, aux_training=True, criterion_bool=True)
+    dicc_results_test["LwF AuxNet"] = lwf_training(datasets, args, aux_training=True)
+    dicc_results_test["LwF AuxNet criterion"] = lwf_training(datasets, args, aux_training=True, criterion_bool=True)
 
     # # Train the model using the BiMeCo approach
     dicc_results_test["BiMeCo"] = bimeco_training(datasets, args)
 
     dicc_results_test["LwF + BiMeCo"] = lwf_with_bimeco(datasets, args)
     dicc_results_test["LwF criterion + BiMeCo "] = lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=True)
-    dicc_results_test["LwF Aux + BiMeCo"] = lwf_with_bimeco(datasets, args, aux_training=True)
-    dicc_results_test["LwF Aux criterion + BiMeCo "] = lwf_with_bimeco(datasets, args, aux_training=True, criterion_bool=True)
+    dicc_results_test["LwF AuxNet + BiMeCo"] = lwf_with_bimeco(datasets, args, aux_training=True)
+    dicc_results_test["LwF AuxNet criterion + BiMeCo "] = lwf_with_bimeco(datasets, args, aux_training=True, criterion_bool=True)
 
     # Save the results
     save_global_results(dicc_results_test, args)

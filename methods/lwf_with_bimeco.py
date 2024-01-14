@@ -308,10 +308,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
                 val_loss_epoch = normal_val(model_long, val_loader, device)
 
                 # Test
-                test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model_long,
-                                                                                            datasets,
-                                                                                            device,
-                                                                                            args)
+                test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model_long, datasets, device, args)
                 
                 # Append the results to dicc_results
                 dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, val_loss_epoch,
@@ -352,7 +349,6 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
         # Save the model
         save_model(model, args, id_task+1, method=method_cl)
 
-
         # Update memory buffer
         if id_task != args.num_tasks-1:
             exemplar_set_img, exemplar_set_label, tasks_dict = after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, 
@@ -373,10 +369,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
     workbook.close()
 
     return test_acc_final
-                    
-
-  
-
+                     
 def normal_train(model, optimizer, data_loader, device):
     model.train()
     epoch_loss = 0
