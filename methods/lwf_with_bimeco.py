@@ -25,17 +25,21 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
     print("="*100)
 
     if aux_training and not criterion_bool:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_aux_training_{args.dataset}.xlsx'
-        method_cl = "LwF_BiMeCo_aux_training"
+        path_file = f'./results/{args.exp_name}/LwF_BiMeCO_auxNetwork_{args.dataset}.xlsx'
+        method_cl = "LwF_BiMeCo_auxNetwork"
+        method_print = "LwF + BiMeCo with auxiliar network"
     elif not aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_criterion_{args.dataset}.xlsx'
-        method_cl = "LwF_BiMeCo_criterion"
+        path_file = f'./results/{args.exp_name}/LwF_BiMeCo_criterionANCL_{args.dataset}.xlsx'
+        method_cl = "LwF_BiMeCo_criterionANCL"
+        method_print = "LwF + BiMeCo with criterion ANCL"
     elif aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_aux_training_criterion_{args.dataset}.xlsx'
-        method_cl = "LwF_BiMeCo_aux_training_criterion"
+        path_file = f'./results/{args.exp_name}/LwF_BiMeCo_auxNetwork_criterionANCL_{args.dataset}.xlsx'
+        method_cl = "LwF_BiMeCo_auxNetwork_criterionANCL"
+        method_print = "LwF + BiMeCo with auxiliar network and criterion ANCL"
     else:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_{args.dataset}.xlsx'
+        path_file = f'./results/{args.exp_name}/LwF_BiMeCo_{args.dataset}.xlsx'
         method_cl = "LwF_BiMeCo"
+        method_print = "LwF + BiMeCo"
 
     # Create the workbook and worksheet to save the results
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
@@ -91,7 +95,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
 
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: BiMeCo -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 # Training
                 train_loss_epoch = normal_train(model, optimizer, train_loader, device)
@@ -147,7 +151,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
                 for epoch in range(args.epochs):
                     print("="*100)
                     print("Train the auxiliar network...")
-                    print(f"METHOD: LwF -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                    print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                     normal_train(auxiliar_network, optimizer_aux, train_loader, device)
                     val_loss_epoch_aux = normal_val(auxiliar_network, val_loader, device)
@@ -229,7 +233,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
 
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: BiMeCo -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
                 
                 # Sample a batch of data from train_dataloader_s
                 for images, labels in train_dataloader_s:
@@ -293,8 +297,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
                 print(f"Auxiliar loss epoch: {auxiliar_loss_epoch * args.lwf_aux_lambda}")
                 print(f"Short loss epoch: {short_loss_epoch * args.bimeco_lambda_short}")
                 print(f"Long loss epoch: {long_loss_epoch * args.bimeco_lambda_long}")
-                print(f"Diff fe images s loss epoch: {diff_fe_images_s_epoch * args.bimeco_lambda_diff}")
-                print(f"Diff fe images l loss epoch: {diff_fe_images_l_epoch * args.bimeco_lambda_diff}")
+                print(f"Sum diff images: {(diff_fe_images_s_epoch + diff_fe_images_l_epoch)*args.bimeco_lambda_diff}")
 
                 # Update the parameters of the long term memory model
                 for param_l, param_s in zip(model_long.parameters() ,  model_short.parameters()):

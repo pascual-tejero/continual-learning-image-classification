@@ -210,8 +210,8 @@ def bimeco_training(datasets, args):
                 # train_loss_epoch = epoch_loss_short + epoch_loss_long
                 train_loss_epoch = total_epoch_loss_long
                 print(f"Train loss: {total_epoch_loss_long}")
-                print(f"Train loss output short: {total_output_short}")
-                print(f"Train loss output long: {total_output_long}")
+                print(f"Train loss output short: {total_output_short * args.bimeco_lambda_short}")
+                print(f"Train loss output long: {total_output_long * args.bimeco_lambda_long}")
                 print(f"Train loss diff images s: {total_diff_images_s}")
                 print(f"Train loss diff images l: {total_diff_images_l}")
                 print(f"Sum diff images: {(total_diff_images_l + total_diff_images_s)*args.bimeco_lambda_diff}")
@@ -337,8 +337,8 @@ def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, image
     
     epoch_loss_short = loss.item()
     epoch_loss_long = loss.item()
-    output_short = F.cross_entropy(output_short, labels_s).item() * args.bimeco_lambda_short
-    output_long = F.cross_entropy(output_long, labels_l).item() * args.bimeco_lambda_long
+    output_short = F.cross_entropy(output_short, labels_s).item()
+    output_long = F.cross_entropy(output_long, labels_l).item()
     diff_images_s = diff_images_s.sum().item() 
     diff_images_l = diff_images_l.sum().item()
     

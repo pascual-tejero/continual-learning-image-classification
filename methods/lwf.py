@@ -26,17 +26,21 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
     print("="*100)
 
     if aux_training and not criterion_bool:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_aux_training_{args.dataset}.xlsx'
-        method_cl = "LwF_BiMeCo_aux_training"
+        path_file = f'./results/{args.exp_name}/LwF_auxNetwork_{args.dataset}.xlsx'
+        method_cl = "LwF_auxNetwork"
+        method_print = "LwF with auxiliar network"
     elif not aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_criterion_{args.dataset}.xlsx'
-        method_cl = "LwF_BiMeCo_criterion"
+        path_file = f'./results/{args.exp_name}/LwF_criterionANCL_{args.dataset}.xlsx'
+        method_cl = "LwF_criterionANCL"
+        method_print = "LwF with criterion ANCL"
     elif aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_aux_training_criterion_{args.dataset}.xlsx'
-        method_cl = "LwF_BiMeCo_aux_training_criterion"
+        path_file = f'./results/{args.exp_name}/LwF_auxNetwork_criterionANCL_{args.dataset}.xlsx'
+        method_cl = "LwF_auxNetwork_criterionANCL"
+        method_print = "LwF with auxiliar network and criterion ANCL"
     else:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_{args.dataset}.xlsx'
-        method_cl = "LwF_BiMeCo"
+        path_file = f'./results/{args.exp_name}/LwF_{args.dataset}.xlsx'
+        method_cl = "LwF"
+        method_print = "LwF"
 
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
     test_acc_final = []  # List to save the average accuracy of each task
@@ -77,7 +81,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
         if id_task == 0:
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: LwF -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 # Training
                 train_loss_epoch = normal_train(model, optimizer, train_loader, criterion_bool)
@@ -138,7 +142,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                 for epoch in range(args.epochs):
                     print("="*100)
                     print("Train the auxiliar network...")
-                    print(f"METHOD: LwF -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                    print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                     normal_train(auxiliar_network, optimizer_aux, train_loader, criterion_bool)
                     val_loss_epoch_aux = normal_val(auxiliar_network, val_loader, criterion_bool)
@@ -189,7 +193,7 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
 
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: LwF -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 if not aux_training:
                     # Training
