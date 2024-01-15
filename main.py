@@ -162,7 +162,7 @@ def main(args):
         
     # ================================================================================================================
     # Project: "LwF"
-    sweep_id = wandb.sweep(sweep_config, project="test1")
+    sweep_id = wandb.sweep(sweep_config, project="LwF")
 
     def train(config=None):
         with wandb.init(config=config):
@@ -171,8 +171,8 @@ def main(args):
     wandb.agent(sweep_id, train, count=args.num_swipes)
     wandb.finish()
 
-    # # Project: "LwF - criterionANCL
-    sweep_id = wandb.sweep(sweep_config, project="test2")
+    # # Project: "LwF with criterion ANCL"
+    sweep_id = wandb.sweep(sweep_config, project="LwF with criterion ANCL")
 
     def train(config=None):
         with wandb.init(config=config):
@@ -181,8 +181,8 @@ def main(args):
     wandb.agent(sweep_id, train, count=args.num_swipes)
     wandb.finish()
 
-    # # Project: "LwF - Auxiliar Network"
-    sweep_id = wandb.sweep(sweep_config, project="test3")
+    # # Project: "LwF with Auxiliar Network"
+    sweep_id = wandb.sweep(sweep_config, project="LwF with Auxiliar Network")
 
     def train(config=None):
         with wandb.init(config=config):
@@ -191,8 +191,8 @@ def main(args):
     wandb.agent(sweep_id, train, count=args.num_swipes)
     wandb.finish()
 
-    # # Project: "LwF - Auxiliar Network + criterionANCL"
-    sweep_id = wandb.sweep(sweep_config, project="test4")
+    # # Project: "LwF with Auxiliar Network and criterion ANCL"
+    sweep_id = wandb.sweep(sweep_config, project="LwF with Auxiliar Network and criterion ANCL")
 
     def train(config=None):
         with wandb.init(config=config):
@@ -205,7 +205,7 @@ def main(args):
 
     # ================================================================================================================
     # Project: "BiMeCo"
-    sweep_id = wandb.sweep(sweep_config, project="test5")
+    sweep_id = wandb.sweep(sweep_config, project="BiMeCo")
 
     def train(config=None):
         with wandb.init(config=config):
@@ -218,8 +218,8 @@ def main(args):
 
 
     # ================================================================================================================
-    # Project: "LwF with BiMeCo"
-    sweep_id = wandb.sweep(sweep_config, project="test6")
+    # Project: "LwF + BiMeCo"
+    sweep_id = wandb.sweep(sweep_config, project="LwF + BiMeCo")
 
     def train(config=None):
         with wandb.init(config=config):
@@ -229,8 +229,8 @@ def main(args):
     wandb.agent(sweep_id, train, count=args.num_swipes)
     wandb.finish()
 
-    # Project: "LwF with BiMeCo - criterionANCL"
-    sweep_id = wandb.sweep(sweep_config, project="test7")
+    # Project: "LwF + BiMeCo with criterion ANCL"
+    sweep_id = wandb.sweep(sweep_config, project="LwF + BiMeCo with criterion ANCL")
     def train(config=None):
         with wandb.init(config=config):
             config = wandb.config
@@ -239,8 +239,8 @@ def main(args):
     wandb.agent(sweep_id, train, count=args.num_swipes)
     wandb.finish()
 
-    # Project: "LwF with BiMeCo - Auxiliar Network"
-    sweep_id = wandb.sweep(sweep_config, project="test8")
+    # Project: "LwF + BiMeCo with auxiliar network"
+    sweep_id = wandb.sweep(sweep_config, project="LwF + BiMeCo with auxiliar network")
     def train(config=None):
         with wandb.init(config=config):
             config = wandb.config
@@ -249,8 +249,8 @@ def main(args):
     wandb.agent(sweep_id, train, count=args.num_swipes)
     wandb.finish()
 
-    # Project: "LwF with BiMeCo - Auxiliar Network + criterionANCL"
-    sweep_id = wandb.sweep(sweep_config, project="test9")
+    # Project: "LwF + BiMeCo with auxiliar network and criterion ANCL"
+    sweep_id = wandb.sweep(sweep_config, project="LwF + BiMeCo with auxiliar network and criterion ANCL")
     def train(config=None):
         with wandb.init(config=config):
             config = wandb.config
@@ -287,7 +287,7 @@ if __name__ == '__main__':
     argparse.add_argument('--lwf_aux_lambda' , type=float, default=0.75) # 0.5
 
     # BiMeCo parameters
-    argparse.add_argument('--memory_size' , type=int, default=22531)
+    argparse.add_argument('--memory_size' , type=int, default=22500)
     argparse.add_argument('--bimeco_lambda_short' , type=float, default=1.5)
     argparse.add_argument('--bimeco_lambda_long' , type=float, default=2.5)
     argparse.add_argument('--bimeco_lambda_diff' , type=float, default=4)
@@ -298,4 +298,6 @@ if __name__ == '__main__':
 
     # Run the main function
     main(argparse.parse_args())
+
+
     
