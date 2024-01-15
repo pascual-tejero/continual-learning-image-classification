@@ -277,9 +277,6 @@ def bimeco_training(datasets, args, config):
                 if epoch == args.epochs-1:
                     test_acc_final.append([test_tasks_accuracy, avg_accuracy])
 
-        # Save the results of the training
-        save_training_results(dicc_results, workbook, id_task+1, training_name="BiMeCo")
-
         # Save the model
         save_model(model_best, args, id_task+1, method="BiMeCo")
 
