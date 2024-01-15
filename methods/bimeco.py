@@ -210,8 +210,8 @@ def bimeco_training(datasets, args):
                 # train_loss_epoch = epoch_loss_short + epoch_loss_long
                 train_loss_epoch = total_epoch_loss_long
                 print(f"Train loss: {total_epoch_loss_long}")
-                print(f"Train loss output short: {total_output_short}")
-                print(f"Train loss output long: {total_output_long}")
+                print(f"Train loss output short: {total_output_short * args.bimeco_lambda_short}")
+                print(f"Train loss output long: {total_output_long * args.bimeco_lambda_long}")
                 print(f"Train loss diff images s: {total_diff_images_s}")
                 print(f"Train loss diff images l: {total_diff_images_l}")
                 print(f"Sum diff images: {(total_diff_images_l + total_diff_images_s)*args.bimeco_lambda_diff}")
