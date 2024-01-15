@@ -337,8 +337,8 @@ def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, image
     
     epoch_loss_short = loss.item()
     epoch_loss_long = loss.item()
-    output_short = F.cross_entropy(output_short, labels_s).item()
-    output_long = F.cross_entropy(output_long, labels_l).item()
+    output_short = F.cross_entropy(output_short, labels_s).item() * args.bimeco_lambda_short
+    output_long = F.cross_entropy(output_long, labels_l).item() * args.bimeco_lambda_long
     diff_images_s = diff_images_s.sum().item() 
     diff_images_l = diff_images_l.sum().item()
     
