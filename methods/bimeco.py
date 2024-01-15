@@ -487,8 +487,10 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
         now_class_mean = np.zeros((1, feature_dim)) # Current class mean
 
         selected_indexes = set() # Set to save the selected indexes
+
         # Construct the exemplar set
         for k in range(m):
+            exit = False
             x = class_mean - (feature_extractor_output + now_class_mean) / (k + 1) # Equation 4
             x = np.linalg.norm(x, axis=1)
 
@@ -498,10 +500,14 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
                 while index in selected_indexes:
                     if len(x) == len(selected_indexes):
                         print(f"All the images have been selected for class {class_index}")
+                        exit = True
                         break
                     x[index] = np.inf
                     index = np.argmin(x)
                 selected_indexes.add(index)
+            
+            if exit:
+                break
 
             now_class_mean += feature_extractor_output[index] # Update the current class mean
             exemplar_img.append(images_ex[index]) # Add the exemplar to the exemplar set
