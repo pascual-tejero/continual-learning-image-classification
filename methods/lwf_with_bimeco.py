@@ -627,7 +627,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     Construct exemplar sets for each task using the iCaRL strategy.
     """
     print("="*100)
-    print(f"METHOD: BiMeCo -> Update the exemplar set of task {id_task+1}")
+    print(f"Update the exemplar set of task {id_task+1}")
     print("="*100)
 
     model.eval() # Set the model to evaluation mode
