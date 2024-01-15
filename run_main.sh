@@ -1,6 +1,6 @@
 
 # If number of tasks is 2:
-# MNIST and Fashion-MNIST: 59900 samples per task
+# MNIST and Fashion-MNIST: 59900 samples per task 
 python main.py --exp_name "mnist_mem50%" --dataset mnist --memory_size 29745 # 29745/10 = 2974 samples per class
 python main.py --exp_name "mnist_mem30%" --dataset mnist --memory_size 17847 # 17847/10 = 1784 samples per class
 python main.py --exp_name "mnist_mem10%" --dataset mnist --memory_size 5949 # 5949/10 = 595 samples per class
