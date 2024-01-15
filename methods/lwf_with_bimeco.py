@@ -17,7 +17,9 @@ from models.architectures.net_mnist import Net_mnist
 from models.architectures.net_cifar10 import Net_cifar10
 from models.architectures.net_cifar100 import Net_cifar100
 
-def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
+import wandb
+
+def lwf_with_bimeco(datasets, args, config, aux_training=False, criterion_bool=None):
 
     print("\n")
     print("="*100)
@@ -107,8 +109,14 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, datasets, device, args)
 
                 # Append the results to dicc_results
-                dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, val_loss_epoch, 
-                                              test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy)
+                wandb.log({"Task 1/Epoch": epoch+1, 
+                           "Task 1/Train loss": train_loss_epoch, 
+                           "Task 1/Validation loss": val_loss_epoch, 
+                           "Task 1/Test loss task 1": test_tasks_loss[0],
+                           "Task 1/Test loss task 2": test_tasks_loss[1], 
+                           "Task 1/Test accuracy task 1": test_tasks_accuracy[0],
+                           "Task 1/Test accuracy task 2": test_tasks_accuracy[1],
+                           "Task 1/Test average accuracy": avg_accuracy})
                 
                 # Early stopping
                 if val_loss_epoch < best_val_loss:
@@ -275,11 +283,11 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
                     if not aux_training:
                         epoch_loss, ce_loss, penalty_loss, auxiliar_loss, loss_short, loss_long, loss_diff_images_s, loss_diff_images_l = ( 
                             lwf_with_bimeco_train(model_old, model_short, model_long, optimizer_short, optimizer_long,
-                                            images, labels, images_s, labels_s, images_l, labels_l, args, device, criterion_bool))
+                                            images, labels, images_s, labels_s, images_l, labels_l, config, device, criterion_bool))
                     else:
                         epoch_loss, ce_loss, penalty_loss, auxiliar_loss, loss_short, loss_long, loss_diff_images_s, loss_diff_images_l = ( 
                             lwf_with_bimeco_train_aux_net(model_old, auxiliar_network, model_short, model_long, optimizer_short, optimizer_long,
-                                            images, labels, images_s, labels_s, images_l, labels_l, args, device, criterion_bool))
+                                            images, labels, images_s, labels_s, images_l, labels_l, config, device, criterion_bool))
 
                     train_loss_epoch += epoch_loss
                     ce_loss_epoch += ce_loss
@@ -293,11 +301,11 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
                 # Print the results of the epoch
                 print(f"Train loss epoch: {train_loss_epoch}")
                 print(f"Cross entropy loss epoch: {ce_loss_epoch}")
-                print(f"Penalty loss epoch: {penalty_loss_epoch * args.lwf_lambda}")
-                print(f"Auxiliar loss epoch: {auxiliar_loss_epoch * args.lwf_aux_lambda}")
-                print(f"Short loss epoch: {short_loss_epoch * args.bimeco_lambda_short}")
-                print(f"Long loss epoch: {long_loss_epoch * args.bimeco_lambda_long}")
-                print(f"Sum diff images: {(diff_fe_images_s_epoch + diff_fe_images_l_epoch)*args.bimeco_lambda_diff}")
+                print(f"Penalty loss epoch: {penalty_loss_epoch * config['lwf_lambda']}")
+                print(f"Auxiliar loss epoch: {auxiliar_loss_epoch * config['lwf_aux_lambda']}")
+                print(f"Short loss epoch: {short_loss_epoch * config['bimeco_lambda_short']}")
+                print(f"Long loss epoch: {long_loss_epoch * config['bimeco_lambda_long']}")
+                print(f"Sum diff images: {(diff_fe_images_s_epoch + diff_fe_images_l_epoch)*config['bimeco_lambda_diff']}")
 
                 # Update the parameters of the long term memory model
                 for param_l, param_s in zip(model_long.parameters() ,  model_short.parameters()):
@@ -310,8 +318,20 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model_long, datasets, device, args)
                 
                 # Append the results to dicc_results
-                dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, val_loss_epoch,
-                                                test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy)
+                wandb.log({"Task 2/Epoch": epoch+1,
+                            "Task 2/Train loss": train_loss_epoch, 
+                            "Task 2/Cross entropy loss": ce_loss_epoch, 
+                            "Task 2/Penalty loss": penalty_loss_epoch * config['lwf_lambda'], 
+                            "Task 2/Auxiliar loss": auxiliar_loss_epoch * config['lwf_aux_lambda'], 
+                            "Task 2/Short loss": short_loss_epoch * config['bimeco_lambda_short'], 
+                            "Task 2/Long loss": long_loss_epoch * config['bimeco_lambda_long'], 
+                            "Task 2/Sum diff images": (diff_fe_images_s_epoch + diff_fe_images_l_epoch)*config['bimeco_lambda_diff'], 
+                            "Task 2/Validation loss": val_loss_epoch, 
+                            "Task 2/Test loss task 1": test_tasks_loss[0],
+                            "Task 2/Test loss task 2": test_tasks_loss[1], 
+                            "Task 2/Test accuracy task 1": test_tasks_accuracy[0],
+                            "Task 2/Test accuracy task 2": test_tasks_accuracy[1],
+                            "Task 2/Test average accuracy": avg_accuracy})
                 
                 # Early stopping
                 if val_loss_epoch < best_val_loss:
@@ -398,7 +418,7 @@ def normal_val(model, data_loader, device):
     return loss.item() / len(data_loader)
 
 def lwf_with_bimeco_train_aux_net(model_old, auxiliar_network, model_short, model_long, optimizer_short, optimizer_long,
-                            images, labels, images_s, labels_s, images_l, labels_l, args, device, criterion_bool=None):
+                            images, labels, images_s, labels_s, images_l, labels_l, config, device, criterion_bool=None):
 
     model_short.train()
     model_long.train()
@@ -433,15 +453,18 @@ def lwf_with_bimeco_train_aux_net(model_old, auxiliar_network, model_short, mode
 
     # Compute the overall loss (LwF and BiMeCo)
     if criterion_bool is None:
-        loss = F.cross_entropy(output, labels) + args.lwf_lambda * penalty + \
-                args.lwf_aux_lambda * aux_loss  + args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) + \
-                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff.sum()
+        loss = F.cross_entropy(output, labels) + config["lwf_lambda"] * penalty + \
+                config["lwf_aux_lambda"] * aux_loss + \
+                config["bimeco_lambda_short"] * F.cross_entropy(output_short, labels_s) + \
+                config["bimeco_lambda_long"] * F.cross_entropy(output_long, labels_l) + \
+                config["bimeco_lambda_diff"] * diff.sum()
     else:
         old_pred = model_old(images)
-        loss_criterion = criterion(output, labels, task=1, targets_old=old_pred, lwf_lambda=args.lwf_lambda,
-                            targets_aux=aux_pred, lwf_aux_lambda=args.lwf_aux_lambda)
-        loss = loss_criterion + args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) + \
-                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff.sum()
+        loss_criterion = criterion(output, labels, task=1, targets_old=old_pred, lwf_lambda=config["lwf_lambda"],
+                            targets_aux=aux_pred, lwf_aux_lambda=config["lwf_aux_lambda"])
+        loss = loss_criterion + config["bimeco_lambda_short"] * F.cross_entropy(output_short, labels_s) + \
+                config["bimeco_lambda_long"] * F.cross_entropy(output_long, labels_l) + \
+                config["bimeco_lambda_diff"] * diff.sum()
 
     
     epoch_loss = loss.item()
@@ -461,7 +484,7 @@ def lwf_with_bimeco_train_aux_net(model_old, auxiliar_network, model_short, mode
     return epoch_loss, ce_loss, penalty_loss, auxiliar_loss, loss_short, loss_long, loss_diff_images_s, loss_diff_images_l
 
 def lwf_with_bimeco_train(model_old, model_short, model_long, optimizer_short, optimizer_long,
-                            images, labels, images_s, labels_s, images_l, labels_l, args, device, criterion_bool=None):
+                            images, labels, images_s, labels_s, images_l, labels_l, config, device, criterion_bool=None):
 
     model_short.train()
     model_long.train()
@@ -493,15 +516,18 @@ def lwf_with_bimeco_train(model_old, model_short, model_long, optimizer_short, o
 
     # Compute the overall loss (LwF and BiMeCo)
     if criterion_bool is None:
-        loss = F.cross_entropy(output, labels) + args.lwf_lambda * penalty + \
-                args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) + \
-                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff.sum()
+        loss = F.cross_entropy(output, labels) + config["lwf_lambda"] * penalty + \
+                config["bimeco_lambda_short"] * F.cross_entropy(output_short, labels_s) + \
+                config["bimeco_lambda_long"] * F.cross_entropy(output_long, labels_l) + \
+                config["bimeco_lambda_diff"] * diff.sum()
+
     else:
         old_pred = model_old(images)
-        loss_criterion = criterion(output, labels, task=1, targets_old=old_pred, lwf_lambda=args.lwf_lambda,
-                            targets_aux=None, lwf_aux_lambda=args.lwf_aux_lambda)
-        loss = loss_criterion + args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) + \
-                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff.sum()
+        loss_criterion = criterion(output, labels, task=1, targets_old=old_pred, lwf_lambda=config["lwf_lambda"],
+                            targets_aux=None, lwf_aux_lambda=config["lwf_aux_lambda"])
+        loss = loss_criterion + config["bimeco_lambda_short"] * F.cross_entropy(output_short, labels_s) + \
+                config["bimeco_lambda_long"] * F.cross_entropy(output_long, labels_l) + \
+                config["bimeco_lambda_diff"] * diff.sum()
 
     
     epoch_loss = loss.item()
@@ -564,20 +590,6 @@ def test(model, datasets, device, args):
 
     return test_task_list, test_loss_list, test_acc_list, avg_acc
 
-def append_results(dicc_results, id_task, epoch, train_loss_epoch, val_loss_epoch, 
-                   test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy):
-
-    # Append the results to dicc_results
-    dicc_results["Train task"].append(id_task)
-    dicc_results["Train epoch"].append(epoch)
-    dicc_results["Train loss"].append(train_loss_epoch)
-    dicc_results["Val loss"].append(val_loss_epoch)
-    dicc_results["Test task"].append(test_tasks_id)
-    dicc_results["Test loss"].append(test_tasks_loss)
-    dicc_results["Test accuracy"].append(test_tasks_accuracy)
-    dicc_results["Test average accuracy"].append(avg_accuracy)
-
-    return dicc_results
 
 def criterion(outputs, targets, task=0, targets_old=None, lwf_lambda=None, targets_aux=None, lwf_aux_lambda=None):
     "Return the loss value"

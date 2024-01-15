@@ -35,7 +35,7 @@ def ewc_training(datasets, args):
     print("Training on EWC approach...")
     print("="*100)
 
-    path_file = f"./results/{args.exp_name}/EWC_{args.dataset}.xlsx" # Path to save the results
+    path_file = f"./results/{args.exp_name}/ewc_{args.dataset}.xlsx" # Path to save the results
     workbook = xlsxwriter.Workbook(path_file) # Create the excel file
     test_acc_final = [] # List to save the test accuracy of each task and the test average accuracy
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -123,7 +123,26 @@ def ewc_training(datasets, args):
                 print(f"Learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
 
                 
-        else:            
+        else:
+            # old_tasks_train = []
+            # old_tasks_val = []
+
+            # for i in range(id_task):
+            #     old_tasks_train.append(datasets[i][0]) # Get the images and labels from the task
+            #     old_tasks_val.append(datasets[i][1]) # Get the images and labels from the task
+
+            # # Get a random sample from the old tasks
+            # old_tasks_train = torch.utils.data.ConcatDataset(old_tasks_train)
+            # old_tasks_val = torch.utils.data.ConcatDataset(old_tasks_val)
+
+            # # Make the dataloader
+            # old_tasks_train_loader = torch.utils.data.DataLoader(dataset=old_tasks_train,
+            #                                                     batch_size=args.batch_size,
+            #                                                     shuffle=True)
+            # old_tasks_val_loader = torch.utils.data.DataLoader(dataset=old_tasks_val,
+            #                                                     batch_size=args.batch_size,
+            #                                                     shuffle=True)
+            
             # Load the previous trained model
             old_model = copy.deepcopy(model)
 

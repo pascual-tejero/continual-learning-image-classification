@@ -17,8 +17,9 @@ from models.architectures.net_cifar10 import Net_cifar10
 from models.architectures.net_cifar100 import Net_cifar100
 
 from methods.lwf_class import normal_train, normal_val, lwf_train, lwf_validate, test, lwf_train_aux, lwf_validate_aux
+import wandb
 
-def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
+def lwf_training(datasets, args, config, aux_training=False, criterion_bool=None):
 
     print("\n")
     print("="*100)
@@ -26,23 +27,22 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
     print("="*100)
 
     if aux_training and not criterion_bool:
-        path_file = f'./results/{args.exp_name}/LwF_auxNetwork_{args.dataset}.xlsx'
+        # path_file = f'./results/{args.exp_name}/LwF_auxNetwork_{args.dataset}.xlsx'
         method_cl = "LwF_auxNetwork"
         method_print = "LwF with auxiliar network"
     elif not aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/LwF_criterionANCL_{args.dataset}.xlsx'
+        # path_file = f'./results/{args.exp_name}/LwF_criterionANCL_{args.dataset}.xlsx'
         method_cl = "LwF_criterionANCL"
         method_print = "LwF with criterion ANCL"
     elif aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/LwF_auxNetwork_criterionANCL_{args.dataset}.xlsx'
+        # path_file = f'./results/{args.exp_name}/LwF_auxNetwork_criterionANCL_{args.dataset}.xlsx'
         method_cl = "LwF_auxNetwork_criterionANCL"
         method_print = "LwF with auxiliar network and criterion ANCL"
     else:
-        path_file = f'./results/{args.exp_name}/LwF_{args.dataset}.xlsx'
+        # path_file = f'./results/{args.exp_name}/LwF_{args.dataset}.xlsx'
         method_cl = "LwF"
         method_print = "LwF"
 
-    workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
     test_acc_final = []  # List to save the average accuracy of each task
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -95,9 +95,14 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                                                                                          args)
 
                 # Append the results to dicc_results
-                dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, 
-                                            val_loss_epoch, test_tasks_id, test_tasks_loss, 
-                                            test_tasks_accuracy, avg_accuracy)
+                wandb.log({"Task 1/Epoch": epoch+1, 
+                           "Task 1/Train loss": train_loss_epoch, 
+                           "Task 1/Validation loss": val_loss_epoch, 
+                           "Task 1/Test loss task 1": test_tasks_loss[0],
+                           "Task 1/Test loss task 2": test_tasks_loss[1], 
+                           "Task 1/Test accuracy task 1": test_tasks_accuracy[0],
+                           "Task 1/Test accuracy task 2": test_tasks_accuracy[1],
+                           "Task 1/Test average accuracy": avg_accuracy})
                 
                 # Early stopping
                 if val_loss_epoch < best_val_loss:
@@ -198,19 +203,19 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                 if not aux_training:
                     # Training
                     train_loss_epoch = lwf_train(model, old_model, optimizer, train_loader, 
-                                                 args.lwf_lambda, criterion_bool)
+                                                 config["lwf_lambda"], criterion_bool)
 
                     # Validation
-                    val_loss_epoch = lwf_validate(model, old_model, val_loader, args.lwf_lambda, criterion_bool)
+                    val_loss_epoch = lwf_validate(model, old_model, val_loader, config["lwf_lambda"], criterion_bool)
                 
                 else:
                     # Training
                     train_loss_epoch = lwf_train_aux(model, old_model, optimizer, train_loader, 
-                                                 args.lwf_lambda, auxiliar_network, args.lwf_aux_lambda,
+                                                 config["lwf_lambda"], auxiliar_network, config["lwf_aux_lambda"],
                                                  criterion_bool)
 
                     # Validation
-                    val_loss_epoch = lwf_validate_aux(model, old_model, val_loader, args.lwf_lambda,
+                    val_loss_epoch = lwf_validate_aux(model, old_model, val_loader, config["lwf_lambda"],
                                                   auxiliar_network, args.lwf_aux_lambda, criterion_bool)
 
                 # Test
@@ -219,9 +224,14 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                                                                                          args)
 
                 # Append the results to dicc_results
-                dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, 
-                                            val_loss_epoch, test_tasks_id, test_tasks_loss, 
-                                            test_tasks_accuracy, avg_accuracy) 
+                wandb.log({f"Task {id_task+1}/Epoch": epoch+1, 
+                           f"Task {id_task+1}/Train loss": train_loss_epoch, 
+                           f"Task {id_task+1}/Validation loss": val_loss_epoch, 
+                           f"Task {id_task+1}/Test loss task 1": test_tasks_loss[0],
+                           f"Task {id_task+1}/Test loss task 2": test_tasks_loss[1], 
+                           f"Task {id_task+1}/Test accuracy task 1": test_tasks_accuracy[0],
+                           f"Task {id_task+1}/Test accuracy task 2": test_tasks_accuracy[1],
+                           f"Task {id_task+1}/Test average accuracy": avg_accuracy})
 
                 # Early stopping
                 if val_loss_epoch < best_val_loss:
@@ -252,29 +262,9 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                 if epoch == args.epochs-1:
                     test_acc_final.append([test_tasks_accuracy, avg_accuracy]) 
                 
-
-        # Save the results (after each task)
-        save_training_results(dicc_results, workbook, id_task+1, training_name="LwF")
-
         # Save the model
         save_model(model_best, args, id_task+1, method=method_cl)
 
-    # Close the excel file
-    workbook.close()
-
     return test_acc_final
 
-def append_results(dicc_results, id_task, epoch, train_loss_epoch, val_loss_epoch, 
-                   test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy):
 
-    # Append the results to dicc_results
-    dicc_results["Train task"].append(id_task)
-    dicc_results["Train epoch"].append(epoch)
-    dicc_results["Train loss"].append(train_loss_epoch)
-    dicc_results["Val loss"].append(val_loss_epoch)
-    dicc_results["Test task"].append(test_tasks_id)
-    dicc_results["Test loss"].append(test_tasks_loss)
-    dicc_results["Test accuracy"].append(test_tasks_accuracy)
-    dicc_results["Test average accuracy"].append(avg_accuracy)
-
-    return dicc_results 

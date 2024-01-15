@@ -4,6 +4,7 @@ import platform
 import shutil
 import argparse
 
+
 from utils.get_dataset_mnist import get_dataset_mnist
 from utils.get_dataset_cifar10 import get_dataset_cifar10
 from utils.get_dataset_cifar100 import get_dataset_cifar100
@@ -17,6 +18,8 @@ from methods.lwf import lwf_training
 from methods.bimeco import bimeco_training
 from methods.lwf_with_bimeco import lwf_with_bimeco
 
+import wandb
+import pprint
 
 def main(args):
     """
@@ -28,8 +31,97 @@ def main(args):
     :param args: arguments from the command line
     :return: None
     """
-    print("Arguments: ", args)
-    
+    wandb.login()
+
+    parameters_dict = {}
+    parameters_dict["exp_name"] = {"value": args.exp_name}
+    parameters_dict["seed"] = {"value": args.seed}
+    parameters_dict["epochs"] = {"value": args.epochs}
+    parameters_dict["lr"] = {"value": args.lr}
+    parameters_dict["lr_decay"] = {"value": args.lr_decay}
+    parameters_dict["lr_patience"] = {"value": args.lr_patience}
+    parameters_dict["lr_min"] = {"value": args.lr_min}
+    parameters_dict["batch_size"] = {"value": args.batch_size}
+    parameters_dict["num_tasks"] = {"value": args.num_tasks}
+
+    parameters_dict["dataset"] = {"value": args.dataset}
+
+    # parameters_dict["img_size"] = {"value": args.img_size}
+    # parameters_dict["img_channels"] = {"value": args.img_channels}
+    # parameters_dict["num_classes"] = {"value": args.num_classes}
+    # parameters_dict["feature_dim"] = {"value": args.feature_dim}
+
+    # EWC parameters
+    # parameters_dict["ewc_lambda"] = {"value": args.ewc_lambda}
+
+    # LwF parameters
+    # parameters_dict["lwf_lambda"] = {"value": args.lwf_lambda}
+    # parameters_dict["lwf_aux_lambda"] = {"value": args.lwf_aux_lambda}
+
+    # BiMeCo parameters
+    parameters_dict["memory_size"] = {"value": args.memory_size}
+    # parameters_dict["bimeco_lambda_short"] = {"value": args.bimeco_lambda_short}
+    # parameters_dict["bimeco_lambda_long"] = {"value": args.bimeco_lambda_long}
+    # parameters_dict["bimeco_lambda_diff"] = {"value": args.bimeco_lambda_diff}
+    # parameters_dict["m"] = {"value": args.m}
+
+    # ================================================================================================================
+    # Training with LwF
+    # ================================================================================================================
+    parameters_dict.update({
+        "lwf_lambda": {
+            "distribution": "uniform",
+            "min": 0.5,
+            "max": 1.5
+        },
+        "lwf_aux_lambda": {
+            "distribution": "uniform",
+            "min": 0.25,
+            "max": 0.85
+        }
+    })
+
+    # ================================================================================================================
+    # Training with BiMeCo
+    # ================================================================================================================
+    parameters_dict.update({
+        "bimeco_lambda_short": {
+            "distribution": "uniform",
+            "min": 1,
+            "max": 20
+        },
+        "bimeco_lambda_long": {
+            "distribution": "uniform",
+            "min": 1,
+            "max": 20
+        },  
+        "bimeco_lambda_diff": {
+            "distribution": "uniform",
+            "min": 0.2,
+            "max": 6
+        },
+        "m": {
+            "distribution": "uniform",
+            "min": 0.01,
+            "max": 0.99
+        }
+    })
+
+    # ================================================================================================================
+
+    sweep_config = {
+        "name": args.exp_name,
+        "method": "random",
+        "metric": {
+            "name": "Task2/test_avg_accuracy",
+            "goal": "maximize"
+        },
+        "parameters": parameters_dict
+    }
+    pprint.pprint(sweep_config)
+
+    # ================================================================================================================
+
     # Set the seed
     torch.manual_seed(args.seed)
     
@@ -67,46 +159,107 @@ def main(args):
         datasets = get_dataset_cifar100(args)
     elif args.dataset == "cifar100_alternative_dist":
         datasets = get_dataset_cifar100_alternative_dist(args)
+        
+    # ================================================================================================================
+    # Project: "LwF"
+    sweep_id = wandb.sweep(sweep_config, project="test1")
 
-    # Create a dictionary to save the results
-    dicc_results_test = {}
+    def train(config=None):
+        with wandb.init(config=config):
+            config = wandb.config
+            lwf_training(datasets, args, config)
+    wandb.agent(sweep_id, train, count=args.num_swipes)
+    wandb.finish()
 
-    # Train the model using the naive approach (no continual learning) for fine-tuning
-    dicc_results_test["Fine-tuning"] = naive_training(datasets, args)
+    # # Project: "LwF - criterionANCL
+    sweep_id = wandb.sweep(sweep_config, project="test2")
 
-    # Train the model using the naive approach (no continual learning) for joint training
-    dicc_results_test["Joint datasets"] = naive_training(datasets, args, joint_datasets=True)
+    def train(config=None):
+        with wandb.init(config=config):
+            config = wandb.config
+            lwf_training(datasets, args, config, aux_training=False, criterion_bool=True)
+    wandb.agent(sweep_id, train, count=args.num_swipes)
+    wandb.finish()
 
-    # Train the model using the rehearsal approach
-    dicc_results_test["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
-    dicc_results_test["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
-    dicc_results_test["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
+    # # Project: "LwF - Auxiliar Network"
+    sweep_id = wandb.sweep(sweep_config, project="test3")
 
-    # Train the model using the EWC approach
-    dicc_results_test["EWC"] = ewc_training(datasets, args)
+    def train(config=None):
+        with wandb.init(config=config):
+            config = wandb.config
+            lwf_training(datasets, args, config, aux_training=True)
+    wandb.agent(sweep_id, train, count=args.num_swipes)
+    wandb.finish()
 
-    # Train the model using the LwF approach
-    dicc_results_test["LwF"] = lwf_training(datasets, args)
-    dicc_results_test["LwF criterionANCL"] = lwf_training(datasets, args, aux_training=False, criterion_bool=True)
+    # # Project: "LwF - Auxiliar Network + criterionANCL"
+    sweep_id = wandb.sweep(sweep_config, project="test4")
 
-    dicc_results_test["LwF AuxNet"] = lwf_training(datasets, args, aux_training=True)
-    dicc_results_test["LwF AuxNet criterionANCL"] = lwf_training(datasets, args, aux_training=True, criterion_bool=True)
+    def train(config=None):
+        with wandb.init(config=config):
+            config = wandb.config
+            lwf_training(datasets, args, config, aux_training=True, criterion_bool=True)
+    wandb.agent(sweep_id, train, count=args.num_swipes)
+    wandb.finish()
+    # ================================================================================================================
 
-    # # Train the model using the BiMeCo approach
-    dicc_results_test["BiMeCo"] = bimeco_training(datasets, args)
 
-    dicc_results_test["LwF + BiMeCo"] = lwf_with_bimeco(datasets, args)
-    dicc_results_test["LwF criterionANCL + BiMeCo "] = lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=True)
-    dicc_results_test["LwF AuxNet + BiMeCo"] = lwf_with_bimeco(datasets, args, aux_training=True)
-    dicc_results_test["LwF AuxNet criterionANCL + BiMeCo "] = lwf_with_bimeco(datasets, args, aux_training=True, criterion_bool=True)
+    # ================================================================================================================
+    # Project: "BiMeCo"
+    sweep_id = wandb.sweep(sweep_config, project="test5")
 
-    # Save the results
-    save_global_results(dicc_results_test, args)
+    def train(config=None):
+        with wandb.init(config=config):
+            config = wandb.config
+            bimeco_training(datasets, args, config)
 
-    # Create the .txt file and save the arguments
-    with open(f'./results/{args.exp_name}/args_{args.exp_name}_{args.dataset}.txt', 'w') as f:
-        for key, value in vars(args).items():
-            f.write(f'{key} : {value}\n')
+    wandb.agent(sweep_id, train, count=args.num_swipes)
+    wandb.finish()
+    # ================================================================================================================
+
+
+    # ================================================================================================================
+    # Project: "LwF with BiMeCo"
+    sweep_id = wandb.sweep(sweep_config, project="test6")
+
+    def train(config=None):
+        with wandb.init(config=config):
+            config = wandb.config
+            lwf_with_bimeco(datasets, args, config)
+
+    wandb.agent(sweep_id, train, count=args.num_swipes)
+    wandb.finish()
+
+    # Project: "LwF with BiMeCo - criterionANCL"
+    sweep_id = wandb.sweep(sweep_config, project="test7")
+    def train(config=None):
+        with wandb.init(config=config):
+            config = wandb.config
+            lwf_with_bimeco(datasets, args, config, aux_training=False, criterion_bool=True)
+
+    wandb.agent(sweep_id, train, count=args.num_swipes)
+    wandb.finish()
+
+    # Project: "LwF with BiMeCo - Auxiliar Network"
+    sweep_id = wandb.sweep(sweep_config, project="test8")
+    def train(config=None):
+        with wandb.init(config=config):
+            config = wandb.config
+            lwf_with_bimeco(datasets, args, config, aux_training=True, criterion_bool=False)
+
+    wandb.agent(sweep_id, train, count=args.num_swipes)
+    wandb.finish()
+
+    # Project: "LwF with BiMeCo - Auxiliar Network + criterionANCL"
+    sweep_id = wandb.sweep(sweep_config, project="test9")
+    def train(config=None):
+        with wandb.init(config=config):
+            config = wandb.config
+            lwf_with_bimeco(datasets, args, config, aux_training=True, criterion_bool=True)
+
+    wandb.agent(sweep_id, train, count=args.num_swipes)
+    wandb.finish()
+
+    
 
 
 if __name__ == '__main__':
@@ -134,11 +287,14 @@ if __name__ == '__main__':
     argparse.add_argument('--lwf_aux_lambda' , type=float, default=0.75) # 0.5
 
     # BiMeCo parameters
-    argparse.add_argument('--memory_size' , type=int, default=22500)
+    argparse.add_argument('--memory_size' , type=int, default=22531)
     argparse.add_argument('--bimeco_lambda_short' , type=float, default=1.5)
     argparse.add_argument('--bimeco_lambda_long' , type=float, default=2.5)
     argparse.add_argument('--bimeco_lambda_diff' , type=float, default=4)
     argparse.add_argument('--m' , type=float, default=0.15) # Momentum
+
+    # Sweep parameters
+    argparse.add_argument('--num_swipes', type=int, default=25)
 
     # Run the main function
     main(argparse.parse_args())

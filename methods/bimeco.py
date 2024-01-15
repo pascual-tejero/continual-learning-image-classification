@@ -16,7 +16,9 @@ from models.architectures.net_mnist import Net_mnist
 from models.architectures.net_cifar10 import Net_cifar10
 from models.architectures.net_cifar100 import Net_cifar100
 
-def bimeco_training(datasets, args):
+import wandb
+
+def bimeco_training(datasets, args, config):
 
     print("\n")
     print("="*100)
@@ -91,10 +93,15 @@ def bimeco_training(datasets, args):
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, datasets, device, args)
 
                 # Append the results to dicc_results
-                dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, 
-                                            val_loss_epoch, test_tasks_id, test_tasks_loss, 
-                                            test_tasks_accuracy, avg_accuracy)
-                
+                wandb.log({"Task 1/Epoch": epoch+1, 
+                           "Task 1/Train loss": train_loss_epoch, 
+                           "Task 1/Validation loss": val_loss_epoch, 
+                           "Task 1/Test loss task 1": test_tasks_loss[0],
+                           "Task 1/Test loss task 2": test_tasks_loss[1], 
+                           "Task 1/Test accuracy task 1": test_tasks_accuracy[0],
+                           "Task 1/Test accuracy task 2": test_tasks_accuracy[1],
+                           "Task 1/Test average accuracy": avg_accuracy})  
+                                            
                 # Early stopping
                 if val_loss_epoch < best_val_loss:
                     best_val_loss = val_loss_epoch
@@ -198,7 +205,7 @@ def bimeco_training(datasets, args):
                     # Forward pass
                     epoch_loss_short, epoch_loss_long, output_short, output_long, diff_images_l, diff_images_s = (
                                                                     bimeco_train(model_short, model_long, optimizer_short, optimizer_long, 
-                                                                     images_s, labels_s, images_l, labels_l, args)
+                                                                     images_s, labels_s, images_l, labels_l, config)
                                                                      )
                     total_epoch_loss_short += epoch_loss_short
                     total_epoch_loss_long += epoch_loss_long
@@ -210,11 +217,11 @@ def bimeco_training(datasets, args):
                 # train_loss_epoch = epoch_loss_short + epoch_loss_long
                 train_loss_epoch = total_epoch_loss_long
                 print(f"Train loss: {total_epoch_loss_long}")
-                print(f"Train loss output short: {total_output_short * args.bimeco_lambda_short}")
-                print(f"Train loss output long: {total_output_long * args.bimeco_lambda_long}")
+                print(f"Train loss output short: {total_output_short * config['bimeco_lambda_short']}")
+                print(f"Train loss output long: {total_output_long * config['bimeco_lambda_long']}")
                 print(f"Train loss diff images s: {total_diff_images_s}")
                 print(f"Train loss diff images l: {total_diff_images_l}")
-                print(f"Sum diff images: {(total_diff_images_l + total_diff_images_s)*args.bimeco_lambda_diff}")
+                print(f"Sum diff images: {(total_diff_images_l + total_diff_images_s)*config['bimeco_lambda_diff']}")
 
                 # Update the parameters of the long term memory model
                 for param_l, param_s in zip(model_long.parameters() ,  model_short.parameters()):
@@ -228,9 +235,17 @@ def bimeco_training(datasets, args):
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model_long, datasets, device, args)
 
                 # Append the results to dicc_results
-                dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch,
-                                            val_loss_epoch, test_tasks_id, test_tasks_loss,
-                                            test_tasks_accuracy, avg_accuracy)
+                wandb.log({"Task 2/Epoch": epoch+1, 
+                           "Task 2/Train loss": train_loss_epoch,
+                           "Task 2/Train loss output short": total_output_short * config['bimeco_lambda_short'],
+                            "Task 2/Train loss output long": total_output_long * config['bimeco_lambda_long'],
+                            "Task 2/Sum diff images": (total_diff_images_l + total_diff_images_s)*config['bimeco_lambda_diff'],
+                            "Task 2/Validation loss": val_loss_epoch, 
+                            "Task 2/Test loss task 1": test_tasks_loss[0],
+                            "Task 2/Test loss task 2": test_tasks_loss[1], 
+                            "Task 2/Test accuracy task 1": test_tasks_accuracy[0],
+                            "Task 2/Test accuracy task 2": test_tasks_accuracy[1],
+                            "Task 2/Test average accuracy": avg_accuracy})
                 
                 # Early stopping
                 if val_loss_epoch < best_val_loss:
@@ -306,7 +321,7 @@ def normal_train(model, optimizer, data_loader, device):
     print(f"Train loss: {epoch_loss / len(data_loader)}")
     return epoch_loss / len(data_loader)
 
-def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, images_s, labels_s, images_l, labels_l, args):
+def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, images_s, labels_s, images_l, labels_l, config):
 
     model_short.train()
     model_long.train()
@@ -331,14 +346,14 @@ def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, image
     diff = torch.cat((diff_images_s, diff_images_l), dim=0) # Concatenate the differences
 
     # Compute the loss
-    loss = (args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) +
-            args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) +
-            args.bimeco_lambda_diff * diff.sum())
+    loss = (config["bimeco_lambda_short"] * F.cross_entropy(output_short, labels_s) + 
+            config["bimeco_lambda_long"] * F.cross_entropy(output_long, labels_l) + 
+            config["bimeco_lambda_diff"] * diff.sum()) 
     
     epoch_loss_short = loss.item()
     epoch_loss_long = loss.item()
-    output_short = F.cross_entropy(output_short, labels_s).item() * args.bimeco_lambda_short
-    output_long = F.cross_entropy(output_long, labels_l).item() * args.bimeco_lambda_long
+    output_short = F.cross_entropy(output_short, labels_s).item()
+    output_long = F.cross_entropy(output_long, labels_l).item()
     diff_images_s = diff_images_s.sum().item() 
     diff_images_l = diff_images_l.sum().item()
     
@@ -418,20 +433,6 @@ def test(model, datasets, device, args):
 
     return test_task_list, test_loss_list, test_acc_list, avg_acc
 
-def append_results(dicc_results, id_task, epoch, train_loss_epoch, val_loss_epoch, 
-                   test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy):
-
-    # Append the results to dicc_results
-    dicc_results["Train task"].append(id_task)
-    dicc_results["Train epoch"].append(epoch)
-    dicc_results["Train loss"].append(train_loss_epoch)
-    dicc_results["Val loss"].append(val_loss_epoch)
-    dicc_results["Test task"].append(test_tasks_id)
-    dicc_results["Test loss"].append(test_tasks_loss)
-    dicc_results["Test accuracy"].append(test_tasks_accuracy)
-    dicc_results["Test average accuracy"].append(avg_accuracy)
-
-    return dicc_results 
 
 def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, device, id_task, args,
                 img_channels, img_size, feature_dim, num_classes):
