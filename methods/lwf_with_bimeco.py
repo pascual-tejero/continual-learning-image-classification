@@ -362,9 +362,6 @@ def lwf_with_bimeco(datasets, args, config, aux_training=False, criterion_bool=N
                 if epoch == args.epochs-1:
                     test_acc_final.append([test_tasks_accuracy, avg_accuracy])
 
-        # Save the results of the task
-        save_training_results(dicc_results, workbook, id_task, training_name="LwF_BiMeCo") 
-
         # Save the model
         save_model(model, args, id_task+1, method=method_cl)
 
