@@ -25,19 +25,19 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
     print("="*100)
 
     if aux_training and not criterion_bool:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_aux_training_{args.dataset}.xlsx'
+        path_file = f'./results/{args.exp_name}/LwF_BiMeCo_aux_training_{args.dataset}.xlsx'
         method_cl = "LwF_BiMeCo_aux_training"
         method_print = "LwF with auxiliar network + BiMeCo"
     elif not aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_criterion_{args.dataset}.xlsx'
+        path_file = f'./results/{args.exp_name}/LwF_BiMeCo_criterion_{args.dataset}.xlsx'
         method_cl = "LwF_BiMeCo_criterion"
         method_print = "LwF with criterion ANCL + BiMeCo"
     elif aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_aux_training_criterion_{args.dataset}.xlsx'
+        path_file = f'./results/{args.exp_name}/LwF_BiMeCo_aux_training_criterion_{args.dataset}.xlsx'
         method_cl = "LwF_BiMeCo_aux_training_criterion"
         method_print = "LwF with auxiliar network and criterion ANCL + BiMeCo"
     else:
-        path_file = f'./results/{args.exp_name}/lwf_with_bimeco_{args.dataset}.xlsx'
+        path_file = f'./results/{args.exp_name}/LwF_BiMeCo_{args.dataset}.xlsx'
         method_cl = "LwF_BiMeCo"
         method_print = "LwF + BiMeCo"
 
