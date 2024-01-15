@@ -293,8 +293,8 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
                 print(f"Auxiliar loss epoch: {auxiliar_loss_epoch * args.lwf_aux_lambda}")
                 print(f"Short loss epoch: {short_loss_epoch * args.bimeco_lambda_short}")
                 print(f"Long loss epoch: {long_loss_epoch * args.bimeco_lambda_long}")
-                print(f"Diff fe images s loss epoch: {diff_fe_images_s_epoch * args.bimeco_lambda_diff}")
-                print(f"Diff fe images l loss epoch: {diff_fe_images_l_epoch * args.bimeco_lambda_diff}")
+                print(f"Sum diff images: {(diff_fe_images_s_epoch + diff_fe_images_l_epoch)*args.bimeco_lambda_diff}")
+
 
                 # Update the parameters of the long term memory model
                 for param_l, param_s in zip(model_long.parameters() ,  model_short.parameters()):
