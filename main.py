@@ -78,9 +78,9 @@ def main(args):
     dicc_results_test["Joint datasets"] = naive_training(datasets, args, joint_datasets=True)
 
     # Train the model using the rehearsal approach
-    dicc_results_test["Rehearsal 0.1"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
-    dicc_results_test["Rehearsal 0.3"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
-    dicc_results_test["Rehearsal 0.5"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
+    dicc_results_test["Rehearsal 10%"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
+    dicc_results_test["Rehearsal 30%"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
+    dicc_results_test["Rehearsal 50%"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
 
     # Train the model using the EWC approach
     dicc_results_test["EWC"] = ewc_training(datasets, args)
