@@ -172,7 +172,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=None):
                             if lr_aux < args.lr_min:
                                 # if the lr decreases below minimum, stop the training session
                                 print()
-                                test_acc_final.append([test_tasks_accuracy, avg_accuracy]) 
+                                #test_acc_final.append([test_tasks_accuracy, avg_accuracy]) 
                                 break
                             # reset patience and recover best model so far to continue training
                             patience_aux = args.lr_patience
