@@ -2,9 +2,9 @@
 # If number of tasks is 2:
 
 # CIFAR100 with alternative distribution: 36490 samples in task 1 and 8945 samples in task 2 (with leakage data)
-python main.py --exp_name "cifar100_leakage_data_mem50%" --dataset cifar100_alternative_dist --memory_size 22500 # 22500/100 = 225 samples per class
-python main.py --exp_name "cifar100_leakage_data_mem30%" --dataset cifar100_alternative_dist --memory_size 13500 # 13500/100 = 135 samples per class
-python main.py --exp_name "cifar100_leakage_data_mem10%" --dataset cifar100_alternative_dist --memory_size 4500 # 4500/100 = 45 samples per class
+python main.py --exp_name "cifar100_leakage_data_mem50%" --dataset cifar100-alternative-dist --memory_size 22500 # 22500/100 = 225 samples per class
+python main.py --exp_name "cifar100_leakage_data_mem30%" --dataset cifar100-alternative-dist --memory_size 13500 # 13500/100 = 135 samples per class
+python main.py --exp_name "cifar100_leakage_data_mem10%" --dataset cifar100-alternative-dist --memory_size 4500 # 4500/100 = 45 samples per class
 
 # CIFAR100: 22500 samples per task
 python main.py --exp_name "cifar100_mem50%" --dataset cifar100 --memory_size 22500 # 22500/100 = 225 samples per class

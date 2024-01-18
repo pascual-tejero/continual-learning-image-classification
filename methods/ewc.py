@@ -1,9 +1,7 @@
 import torch
-import torch.nn.functional as F
 import torch.optim as optim
 
 import xlsxwriter
-import os
 import sys
 import copy
 
@@ -39,13 +37,14 @@ def ewc_training(datasets, args):
     workbook = xlsxwriter.Workbook(path_file) # Create the excel file
     test_acc_final = [] # List to save the test accuracy of each task and the test average accuracy
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    torch.manual_seed(args.seed) # Set the seed
 
     # Create the excel file
     if args.dataset == "mnist":
         model = Net_mnist().to(device) # Instantiate the model
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device) # Instantiate the model
-    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
+    elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device) # Instantiate the model
 
     for id_task, task in enumerate(datasets):
@@ -127,9 +126,15 @@ def ewc_training(datasets, args):
             # Load the previous trained model
             old_model = copy.deepcopy(model)
 
+            tasks_id = [x for x in range(1,id_task+1)]
+            if tasks_id == []:
+                tasks_id = [0]
+            elif len(tasks_id) > 6:
+                tasks_id = id_task
+
             # Load the previous model
             path_old_model = (f"./models/models_saved/{args.exp_name}/EWC_{args.dataset}/"
-                              f"EWC_aftertask_{id_task}_{args.dataset}.pt")
+                              f"EWC-aftertask{str(tasks_id)}.pt")
             old_model.load_state_dict(torch.load(path_old_model))
                                                             
             for epoch in range(args.epochs):

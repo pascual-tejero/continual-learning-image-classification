@@ -1,10 +1,8 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
 
 import xlsxwriter
-import os
 import sys
 import copy
 import numpy as np
@@ -27,6 +25,8 @@ def bimeco_training(datasets, args):
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
     test_acc_final = []  # List to save the average accuracy of each task
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    torch.manual_seed(args.seed)  # Set the seed
+
     exemplar_set_img = []  # List to save the exemplar set
     exemplar_set_label = []  # List to save the exemplar set labels
     
@@ -43,7 +43,7 @@ def bimeco_training(datasets, args):
         img_size = 32
         img_channels = 3
         feature_dim = 512
-    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
+    elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device)  # Instantiate the model
         num_classes = 100
         img_size = 32
@@ -125,8 +125,16 @@ def bimeco_training(datasets, args):
                     test_acc_final.append([test_tasks_accuracy, avg_accuracy])
 
         else:
+
+            # Prepare the old model
+            tasks_id = [x for x in range(1,id_task+1)]
+            if tasks_id == []:
+                tasks_id = [0]
+            elif len(tasks_id) > 6:
+                tasks_id = id_task
+
             path_model = (f"./models/models_saved/{args.exp_name}/BiMeCo_{args.dataset}/"
-                          f"BiMeCo_aftertask_{id_task}_{args.dataset}.pt")
+                          f"BiMeCo-aftertask{str(tasks_id)}.pt")
             
             # Load model for short term memory
             model_short = copy.deepcopy(model) 
@@ -451,7 +459,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     exemplar_set_label = [cls[:m] for cls in exemplar_set_label]
     print(f"Size of class {index} exemplar: {len(exemplar_set_img[index])}" for index in range(len(exemplar_set_img)))
 
-    if args.dataset == "cifar100_alternative_dist":
+    if args.dataset == "cifar100-alternative-dist":
         # Create the tasks dictionary to know the classes of each task
         list_tasks = [80,100]
     else:

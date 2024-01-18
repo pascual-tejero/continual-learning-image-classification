@@ -1,8 +1,6 @@
 import torch
 import numpy as np
 
-import argparse
-
 from utils.analyse_datasets import analyse_datasets
 from utils.load_mnist import init_mnist, load_mnist, load_fashion_mnist
 

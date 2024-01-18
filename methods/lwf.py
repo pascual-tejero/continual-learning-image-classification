@@ -1,9 +1,7 @@
 import torch
-import torch.nn.functional as F
 import torch.optim as optim
 
 import xlsxwriter
-import os
 import sys
 import copy
 
@@ -18,25 +16,25 @@ from models.architectures.net_cifar100 import Net_cifar100
 
 from methods.lwf_class import normal_train, normal_val, lwf_train, lwf_validate, test, lwf_train_aux, lwf_validate_aux
 
-def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
+def lwf_training(datasets, args, aux_training=False, loss_ANCL=None):
 
     print("\n")
     print("="*100)
     print("Training on LwF approach...")
     print("="*100)
 
-    if aux_training and not criterion_bool:
-        path_file = f'./results/{args.exp_name}/LwF_auxNetwork_{args.dataset}.xlsx'
-        method_cl = "LwF_auxNetwork"
-        method_print = "LwF with auxiliar network"
-    elif not aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/LwF_criterionANCL_{args.dataset}.xlsx'
-        method_cl = "LwF_criterionANCL"
-        method_print = "LwF with criterion ANCL"
-    elif aux_training and criterion_bool:
-        path_file = f'./results/{args.exp_name}/LwF_auxNetwork_criterionANCL_{args.dataset}.xlsx'
-        method_cl = "LwF_auxNetwork_criterionANCL"
-        method_print = "LwF with auxiliar network and criterion ANCL"
+    if aux_training and not loss_ANCL:
+        path_file = f'./results/{args.exp_name}/LwF-auxNetwork_{args.dataset}.xlsx'
+        method_cl = "LwF-auxNetwork"
+        method_print = "LwF with auxiliary network"
+    elif not aux_training and loss_ANCL:
+        path_file = f'./results/{args.exp_name}/LwF-loss-ANCL_{args.dataset}.xlsx'
+        method_cl = "LwF-lossANCL"
+        method_print = "LwF with loss ANCL"
+    elif aux_training and loss_ANCL:
+        path_file = f'./results/{args.exp_name}/LwF-auxNetwork-lossANCL_{args.dataset}.xlsx'
+        method_cl = "LwF-auxNetwork-lossANCL"
+        method_print = "LwF with auxiliary network and loss ANCL"
     else:
         path_file = f'./results/{args.exp_name}/LwF_{args.dataset}.xlsx'
         method_cl = "LwF"
@@ -45,13 +43,14 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
     test_acc_final = []  # List to save the average accuracy of each task
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    torch.manual_seed(args.seed) # Set the seed
 
     # Create the excel file
     if args.dataset == "mnist":
         model = Net_mnist().to(device)  # Instantiate the model
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device)  # Instantiate the model
-    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
+    elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device)  # Instantiate the model
 
     for id_task, task in enumerate(datasets):
@@ -84,10 +83,10 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                 print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 # Training
-                train_loss_epoch = normal_train(model, optimizer, train_loader, criterion_bool)
+                train_loss_epoch = normal_train(model, optimizer, train_loader, loss_ANCL)
 
                 # Validation
-                val_loss_epoch = normal_val(model, val_loader, criterion_bool)
+                val_loss_epoch = normal_val(model, val_loader, loss_ANCL)
 
                 # Test
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, 
@@ -136,23 +135,23 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                 patience_aux = args.lr_patience # Patience for early stopping
                 lr_aux = args.lr # Learning rate
                 best_val_loss_aux = 1e20 # Validation loss of the previous epoch
-                auxiliar_network = copy.deepcopy(model_best).to(device)
-                optimizer_aux = optim.Adam(auxiliar_network.parameters(), lr=args.lr)  # Instantiate the optimizer
+                auxiliary_network = copy.deepcopy(model_best).to(device)
+                optimizer_aux = optim.Adam(auxiliary_network.parameters(), lr=args.lr)  # Instantiate the optimizer
 
                 for epoch in range(args.epochs):
                     print("="*100)
-                    print("Train the auxiliar network...")
+                    print("Train the auxiliary network...")
                     print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
-                    normal_train(auxiliar_network, optimizer_aux, train_loader, criterion_bool)
-                    val_loss_epoch_aux = normal_val(auxiliar_network, val_loader, criterion_bool)
-                    test(auxiliar_network, datasets, args)
+                    normal_train(auxiliary_network, optimizer_aux, train_loader, loss_ANCL)
+                    val_loss_epoch_aux = normal_val(auxiliary_network, val_loader, loss_ANCL)
+                    test(auxiliary_network, datasets, args)
 
                     # Early stopping
                     if val_loss_epoch_aux < best_val_loss_aux:
                         best_val_loss_aux = val_loss_epoch_aux
                         patience_aux = args.lr_patience
-                        model_best_aux = copy.deepcopy(auxiliar_network)
+                        model_best_aux = copy.deepcopy(auxiliary_network)
                     else:
                         # if the loss does not go down, decrease patience
                         patience_aux -= 1
@@ -169,25 +168,30 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                             patience_aux = args.lr_patience
                             for param_group in optimizer_aux.param_groups:
                                 param_group['lr'] = lr_aux
-                            auxiliar_network.load_state_dict(model_best_aux.state_dict())
+                            auxiliary_network.load_state_dict(model_best_aux.state_dict())
                     
                     print(f"Current learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience_aux}")
 
                     if epoch == args.epochs-1:
-                        auxiliar_network = copy.deepcopy(model_best_aux).to(device)
-                        
-                torch.save(auxiliar_network.state_dict(), (f"./models/models_saved/{args.exp_name}/{method_cl}_{args.dataset}/"
-                                                           f"Aux_Network_task_{id_task+1}_{args.dataset}.pt"))
+                        auxiliary_network = copy.deepcopy(model_best_aux).to(device)
+
+                torch.save(auxiliary_network.state_dict(), (f"./models/models_saved/{args.exp_name}/{method_cl}_{args.dataset}/"
+                                                           f"AuxNetwork-task{str([id_task+1])}.pt"))
             
-                auxiliar_network.eval()
-                for param in auxiliar_network.parameters():
+                auxiliary_network.eval()
+                for param in auxiliary_network.parameters():
                     param.requires_grad = False
-                
-            # Load the previous model
-            old_model = copy.deepcopy(model).to(device)
+
+            # Prepare the old model
+            tasks_id = [x for x in range(1,id_task+1)]
+            if tasks_id == []:
+                tasks_id = [0]
+            elif len(tasks_id) > 6:
+                tasks_id = id_task
 
             path_old_model = (f"./models/models_saved/{args.exp_name}/{method_cl}_{args.dataset}/"
-                            f"{method_cl}_aftertask_{id_task}_{args.dataset}.pt")
+                            f"{method_cl}-aftertask{str(tasks_id)}.pt")
+            old_model = copy.deepcopy(model).to(device)
             old_model.load_state_dict(torch.load(path_old_model))
             old_model.eval()
 
@@ -198,20 +202,20 @@ def lwf_training(datasets, args, aux_training=False, criterion_bool=None):
                 if not aux_training:
                     # Training
                     train_loss_epoch = lwf_train(model, old_model, optimizer, train_loader, 
-                                                 args.lwf_lambda, criterion_bool)
+                                                 args.lwf_lambda, loss_ANCL)
 
                     # Validation
-                    val_loss_epoch = lwf_validate(model, old_model, val_loader, args.lwf_lambda, criterion_bool)
+                    val_loss_epoch = lwf_validate(model, old_model, val_loader, args.lwf_lambda, loss_ANCL)
                 
                 else:
                     # Training
                     train_loss_epoch = lwf_train_aux(model, old_model, optimizer, train_loader, 
-                                                 args.lwf_lambda, auxiliar_network, args.lwf_aux_lambda,
-                                                 criterion_bool)
+                                                 args.lwf_lambda, auxiliary_network, args.lwf_aux_lambda,
+                                                 loss_ANCL)
 
                     # Validation
                     val_loss_epoch = lwf_validate_aux(model, old_model, val_loader, args.lwf_lambda,
-                                                  auxiliar_network, args.lwf_aux_lambda, criterion_bool)
+                                                  auxiliary_network, args.lwf_aux_lambda, loss_ANCL)
 
                 # Test
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, 

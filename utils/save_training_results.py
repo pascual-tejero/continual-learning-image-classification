@@ -1,15 +1,12 @@
 import xlsxwriter
-import os
 
 def save_training_results(dicc_results, workbook, id_task, training_name="naive"):
     """
     Create an excel file to save the results of the experiments
     
     """
-
-    name_worksheet = f"{training_name}_after_task{str(id_task)}"
-    # print(name_worksheet)
-
+    # Create a workbook and add a worksheet
+    name_worksheet = f"{training_name}_untilTask{str(id_task)}"
     worksheet = workbook.add_worksheet(name_worksheet) # Create a worksheet
 
     # Merge cells A1:D1 and E1:H1

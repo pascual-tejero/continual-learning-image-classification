@@ -4,6 +4,7 @@ import urllib.request
 import tarfile
 from six.moves import cPickle as pickle
 import platform
+from tqdm import tqdm
 
 img_rows, img_cols = 32, 32
 input_shape = (img_rows, img_cols, 3)
@@ -53,8 +54,19 @@ def download_CIFAR100(download_path='./datasets/cifar100/'):
     
     # Download the file using urllib.request
     print('Downloading CIFAR-100 from {}'.format(dataset_link))
-    urllib.request.urlretrieve(dataset_link, out_path)
-    
+    with urllib.request.urlopen(dataset_link) as response, open(out_path, 'wb') as out_file:
+        file_size = int(response.getheader('Content-Length'))
+        block_size = 1024  # 1 Kibibyte
+
+        with tqdm(total=file_size, unit='B', unit_scale=True) as pbar:
+            while True:
+                buffer = response.read(block_size)
+                if not buffer:
+                    break
+                
+                out_file.write(buffer)
+                pbar.update(len(buffer))
+
     # Extract the tar.gz file using tarfile
     print('Extracting CIFAR-100 from {}'.format(out_path))
     with tarfile.open(out_path, 'r:gz') as tar:

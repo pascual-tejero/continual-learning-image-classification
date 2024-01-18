@@ -1,6 +1,5 @@
 import numpy as np
 import torch
-import argparse
 
 from utils.analyse_datasets import analyse_datasets
 from utils.load_cifar10 import get_CIFAR10_data  # Assuming there is a function for loading CIFAR-10 data

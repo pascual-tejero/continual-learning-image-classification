@@ -18,14 +18,14 @@ def variable(t: torch.Tensor, use_cuda=True, **kwargs):
 
 
 def normal_train(model: nn.Module, optimizer: torch.optim, data_loader: torch.utils.data.DataLoader,
-                 criterion_bool=None):
+                 loss_ANCL=None):
     model.train()
     epoch_loss = 0
     for input, target in data_loader:
         input, target = variable(input), variable(target)
         optimizer.zero_grad()
         output = model(input)
-        if criterion_bool is None:
+        if loss_ANCL is None:
             loss = F.cross_entropy(output, target)
         else:
             loss = criterion(output, target, task=0)
@@ -37,14 +37,14 @@ def normal_train(model: nn.Module, optimizer: torch.optim, data_loader: torch.ut
     return epoch_loss / len(data_loader)
 
 
-def normal_val(model: nn.Module, data_loader: torch.utils.data.DataLoader, criterion_bool=None):
+def normal_val(model: nn.Module, data_loader: torch.utils.data.DataLoader, loss_ANCL=None):
     model.eval()
     loss = 0
     with torch.no_grad():
         for input, target in data_loader:
             input, target = variable(input), variable(target)
             output = model(input)
-            if criterion_bool is None:
+            if loss_ANCL is None:
                 loss += F.cross_entropy(output, target)
             else:
                 loss += criterion(output, target, task=0)
@@ -54,7 +54,7 @@ def normal_val(model: nn.Module, data_loader: torch.utils.data.DataLoader, crite
 
 
 def lwf_train(model: nn.Module, old_model:nn.Module, optimizer: torch.optim, 
-              data_loader: torch.utils.data.DataLoader, alpha: float, criterion_bool=None):
+              data_loader: torch.utils.data.DataLoader, alpha: float, loss_ANCL=None):
     model.train()
     epoch_loss = 0
     epoch_loss = 0
@@ -72,7 +72,7 @@ def lwf_train(model: nn.Module, old_model:nn.Module, optimizer: torch.optim,
         # Calculate the KL divergence between the current and old predictions
         penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
 
-        if criterion_bool is None:
+        if loss_ANCL is None:
             loss = F.cross_entropy(output, target) + alpha * penalty
         else:
             old_pred = old_model(input)
@@ -89,7 +89,7 @@ def lwf_train(model: nn.Module, old_model:nn.Module, optimizer: torch.optim,
 
 
 def lwf_validate(model: nn.Module, old_model:nn.Module, data_loader: torch.utils.data.DataLoader, 
-                 alpha: float, criterion_bool=None):
+                 alpha: float, loss_ANCL=None):
     model.eval()
     old_model.eval()
     loss = 0
@@ -106,7 +106,7 @@ def lwf_validate(model: nn.Module, old_model:nn.Module, data_loader: torch.utils
             # Calculate the KL divergence between the current and old predictions
             penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
 
-            if criterion_bool is None:
+            if loss_ANCL is None:
                 loss += F.cross_entropy(output, target) + alpha * penalty
             else:
                 old_pred = old_model(input)
@@ -115,10 +115,10 @@ def lwf_validate(model: nn.Module, old_model:nn.Module, data_loader: torch.utils
     print(f"Val loss: {loss / len(data_loader)}")
     return loss / len(data_loader)
 
-def lwf_train_aux(model, old_model, optimizer, data_loader, lwf_lambda, auxiliar_network, lwf_aux_lambda,
-                  criterion_bool=None):
+def lwf_train_aux(model, old_model, optimizer, data_loader, lwf_lambda, auxiliary_network, lwf_aux_lambda,
+                  loss_ANCL=None):
     model.train()
-    auxiliar_network.eval()
+    auxiliary_network.eval()
     epoch_loss = 0
     epoch_penalty_loss = 0
     epoch_aux_loss = 0
@@ -133,15 +133,15 @@ def lwf_train_aux(model, old_model, optimizer, data_loader, lwf_lambda, auxiliar
         current_predictions = F.log_softmax(model(input), dim=1)
         old_predictions = F.softmax(old_model(input), dim=1)
 
-        aux_pred = auxiliar_network(input)
+        aux_pred = auxiliary_network(input)
         
         # Calculate the KL divergence between the current and old predictions
         penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
 
-        # Get the predictions of the auxiliar network
-        aux_loss = F.cross_entropy(auxiliar_network(input), target)
+        # Get the predictions of the auxiliary network
+        aux_loss = F.cross_entropy(auxiliary_network(input), target)
 
-        if criterion_bool is None:
+        if loss_ANCL is None:
             loss = F.cross_entropy(output, target) + lwf_lambda * penalty + lwf_aux_lambda * aux_loss
         else:
             old_pred = old_model(input)
@@ -159,11 +159,11 @@ def lwf_train_aux(model, old_model, optimizer, data_loader, lwf_lambda, auxiliar
     print(f"Auxiliar loss: {epoch_aux_loss / len(data_loader)}")
     return epoch_loss / len(data_loader)
 
-def lwf_validate_aux(model, old_model, data_loader, lwf_lambda, auxiliar_network, lwf_aux_lambda,
-                     criterion_bool=None):
+def lwf_validate_aux(model, old_model, data_loader, lwf_lambda, auxiliary_network, lwf_aux_lambda,
+                     loss_ANCL=None):
     model.eval()
     old_model.eval()
-    auxiliar_network.eval()
+    auxiliary_network.eval()
     loss = 0
 
     with torch.no_grad():
@@ -174,15 +174,15 @@ def lwf_validate_aux(model, old_model, data_loader, lwf_lambda, auxiliar_network
             # Get the predictions of the current model
             current_predictions = F.log_softmax(model(input), dim=1)
             old_predictions = F.softmax(old_model(input), dim=1)
-            aux_pred = auxiliar_network(input)
+            aux_pred = auxiliary_network(input)
             
             # Calculate the KL divergence between the current and old predictions
             penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
 
-            # Get the predictions of the auxiliar network
-            aux_loss = F.cross_entropy(auxiliar_network(input), target)
+            # Get the predictions of the auxiliary network
+            aux_loss = F.cross_entropy(auxiliary_network(input), target)
 
-            if criterion_bool is None:
+            if loss_ANCL is None:
                 loss += F.cross_entropy(output, target) + lwf_lambda * penalty + lwf_aux_lambda * aux_loss
             else:
                 old_pred = old_model(input)

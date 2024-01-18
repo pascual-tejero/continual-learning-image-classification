@@ -1,4 +1,3 @@
-import torch
 import os
 import platform
 import shutil
@@ -29,9 +28,6 @@ def main(args):
     :return: None
     """
     print("Arguments: ", args)
-    
-    # Set the seed
-    torch.manual_seed(args.seed)
     
     # Determine the operating system
     system_platform = platform.system()
@@ -65,7 +61,7 @@ def main(args):
         datasets = get_dataset_cifar10(args)
     elif args.dataset == "cifar100":
         datasets = get_dataset_cifar100(args)
-    elif args.dataset == "cifar100_alternative_dist":
+    elif args.dataset == "cifar100-alternative-dist":
         datasets = get_dataset_cifar100_alternative_dist(args)
 
     # Create a dictionary to save the results
@@ -78,27 +74,27 @@ def main(args):
     dicc_results_test["Joint datasets"] = naive_training(datasets, args, joint_datasets=True)
 
     # Train the model using the rehearsal approach
-    dicc_results_test["Rehearsal 10%"] = rehearsal_training(datasets, args, rehearsal_percentage=0.1, random_rehearsal=True)
-    dicc_results_test["Rehearsal 30%"] = rehearsal_training(datasets, args, rehearsal_percentage=0.3, random_rehearsal=True)
-    dicc_results_test["Rehearsal 50%"] = rehearsal_training(datasets, args, rehearsal_percentage=0.5, random_rehearsal=True)
+    dicc_results_test["Rehearsal 10%"] = rehearsal_training(datasets, args, rehearsal_prop=0.1, random_rehearsal=True)
+    dicc_results_test["Rehearsal 30%"] = rehearsal_training(datasets, args, rehearsal_prop=0.3, random_rehearsal=True)
+    dicc_results_test["Rehearsal 50%"] = rehearsal_training(datasets, args, rehearsal_prop=0.5, random_rehearsal=True)
 
     # Train the model using the EWC approach
     dicc_results_test["EWC"] = ewc_training(datasets, args)
 
     # Train the model using the LwF approach
     dicc_results_test["LwF"] = lwf_training(datasets, args)
-    dicc_results_test["LwF criterionANCL"] = lwf_training(datasets, args, aux_training=False, criterion_bool=True)
+    dicc_results_test["LwF lossANCL"] = lwf_training(datasets, args, aux_training=False, loss_ANCL=True)
 
     dicc_results_test["LwF AuxNet"] = lwf_training(datasets, args, aux_training=True)
-    dicc_results_test["LwF AuxNet criterionANCL"] = lwf_training(datasets, args, aux_training=True, criterion_bool=True)
+    dicc_results_test["LwF AuxNet lossANCL"] = lwf_training(datasets, args, aux_training=True, loss_ANCL=True)
 
     # # Train the model using the BiMeCo approach
     dicc_results_test["BiMeCo"] = bimeco_training(datasets, args)
 
     dicc_results_test["LwF + BiMeCo"] = lwf_with_bimeco(datasets, args)
-    dicc_results_test["LwF criterionANCL + BiMeCo "] = lwf_with_bimeco(datasets, args, aux_training=False, criterion_bool=True)
+    dicc_results_test["LwF lossANCL + BiMeCo "] = lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=True)
     dicc_results_test["LwF AuxNet + BiMeCo"] = lwf_with_bimeco(datasets, args, aux_training=True)
-    dicc_results_test["LwF AuxNet criterionANCL + BiMeCo "] = lwf_with_bimeco(datasets, args, aux_training=True, criterion_bool=True)
+    dicc_results_test["LwF AuxNet lossANCL + BiMeCo "] = lwf_with_bimeco(datasets, args, aux_training=True, loss_ANCL=True)
 
     # Save the results
     save_global_results(dicc_results_test, args)
@@ -123,8 +119,8 @@ if __name__ == '__main__':
     argparse.add_argument('--batch_size', type=int, default=200) # 200
     argparse.add_argument('--num_tasks', type=int, default=2) # 2
 
-    # Dataset parameters: mnist, cifar10, cifar100, cifar100_alternative_dist
-    argparse.add_argument('--dataset', type=str, default="cifar100_alternative_dist")
+    # Dataset parameters: mnist, cifar10, cifar100, cifar100-alternative-dist
+    argparse.add_argument('--dataset', type=str, default="cifar100-alternative-dist")
 
     # EWC parameters
     argparse.add_argument('--ewc_lambda' , type=float, default=1000) # 1000
