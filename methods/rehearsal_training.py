@@ -79,8 +79,9 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
 
         for epoch in range(args.epochs):
             print("="*100)
-            print(f"METHOD: Rehearsal training -> Train on task {id_task+1} -> Epoch: {epoch+1}")
-
+            print(f"METHOD: Rehearsal training {rehearsal_percentage}% "
+                   f"-> Train on task {id_task+1} -> Epoch: {epoch+1}")
+            
             # Training
             train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task+1)
 
@@ -131,10 +132,10 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
 
         # Save the results of the task
         save_training_results(dicc_results, workbook, id_task+1, 
-                              training_name=f"rehearsal_{rehearsal_percentage}")
+                              training_name=f"rehearsal{rehearsal_percentage*100}%")
 
         # Save the best model after each task
-        save_model(model_best, args, id_task+1, method=f"rehearsal_{rehearsal_percentage}")
+        save_model(model_best, args, id_task+1, method=f"rehearsal{rehearsal_percentage*100}%")
 
     # Close the excel file
     workbook.close()
