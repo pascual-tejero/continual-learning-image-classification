@@ -1,4 +1,3 @@
-
 # If number of tasks is 2:
 
 # CIFAR100 with alternative distribution: 36490 samples in task 1 and 8945 samples in task 2 (with leakage data)
