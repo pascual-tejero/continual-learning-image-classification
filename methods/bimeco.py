@@ -36,19 +36,19 @@ def bimeco_training(datasets, args):
         num_classes = 10
         img_size = 28
         img_channels = 1
-        feature_dim = 320
+        feature_dim = 160
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device)  # Instantiate the model
         num_classes = 10
         img_size = 32
         img_channels = 3
-        feature_dim = 512
+        feature_dim = 1024
     elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device)  # Instantiate the model
         num_classes = 100
         img_size = 32
         img_channels = 3
-        feature_dim = 64
+        feature_dim = 1024
 
     for id_task, task in enumerate(datasets):
         print("="*100)
@@ -330,32 +330,32 @@ def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, image
     # Compute the difference between the feature extractor outputs
     feat_ext_short_model_images_s = F.normalize(model_short.feature_extractor(images_s))
     feat_ext_long_model_images_s = F.normalize(model_long.feature_extractor(images_s))
-    diff_images_s = (feat_ext_short_model_images_s - feat_ext_long_model_images_s) ** 2 
+    diff_images_s = ((feat_ext_long_model_images_s -feat_ext_short_model_images_s)**2).sum()
 
     feat_ext_short_model_images_l = F.normalize(model_short.feature_extractor(images_l))
     feat_ext_long_model_images_l = F.normalize(model_long.feature_extractor(images_l))
-    diff_images_l = (feat_ext_short_model_images_l - feat_ext_long_model_images_l) ** 2 
+    diff_images_l = ((feat_ext_long_model_images_l - feat_ext_short_model_images_l)**2).sum()
 
-    diff = torch.cat((diff_images_s, diff_images_l), dim=0) # Concatenate the differences
+    diff = 0.5 * (diff_images_l + diff_images_s)
 
     # Compute the loss
     loss = (args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) +
             args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) +
-            args.bimeco_lambda_diff * diff.sum())
+            args.bimeco_lambda_diff * diff)
     
     epoch_loss_short = loss.item()
     epoch_loss_long = loss.item()
     output_short = F.cross_entropy(output_short, labels_s).item() * args.bimeco_lambda_short
     output_long = F.cross_entropy(output_long, labels_l).item() * args.bimeco_lambda_long
-    diff_images_s = diff_images_s.sum().item() 
-    diff_images_l = diff_images_l.sum().item()
+    loss_diff_images_s = diff_images_s.item() 
+    loss_diff_images_l = diff_images_l.item()
     
     loss.backward() # Backward pass
 
     optimizer_short.step() # Update the parameters of the short term memory model
     optimizer_long.step() # Update the parameters of the long term memory model
 
-    return epoch_loss_short, epoch_loss_long, output_short, output_long, diff_images_l, diff_images_s
+    return epoch_loss_short, epoch_loss_long, output_short, output_long, loss_diff_images_s, loss_diff_images_l
 
 def bimeco_val(model_short, model_long, data_loader, device):
     model_long.eval()
@@ -462,6 +462,8 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     if args.dataset == "cifar100-alternative-dist":
         # Create the tasks dictionary to know the classes of each task
         list_tasks = [80,100]
+    elif args.dataset == "mnist":
+        list_tasks = [10,20]
     else:
         # Create the tasks dictionary to know the classes of each task
         list_tasks = [num_classes // args.num_tasks * i for i in range(1, args.num_tasks + 1)]
@@ -488,11 +490,15 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
 
         # Construct the exemplar set
         feature_extractor_output = F.normalize(model.feature_extractor(images_ex.to(device))).cpu().detach().numpy()
+        # print(f"Feature extractor output shape: {feature_extractor_output.shape}")
         class_mean = np.mean(feature_extractor_output, axis=0)
+        # print(f"Class mean shape: {class_mean.shape}")
+
 
         exemplar_img = [] # List to save the exemplar set
         exemplar_label = [] # List to save the exemplar set labels
         now_class_mean = np.zeros((1, feature_dim)) # Current class mean
+        # print(f"Now class mean shape: {now_class_mean.shape}")
 
         selected_indexes = set() # Set to save the selected indexes
 
@@ -526,6 +532,8 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
         exemplar_set_label.append(exemplar_label) # Add the exemplar set labels to the exemplar set labels list
         images_ex = torch.empty((0, img_channels, img_size, img_size))
         labels_ex = torch.empty((0), dtype=torch.long) # Reset the labels variable
+        print(f"Class {class_index} exemplar set size: {len(exemplar_set_img[class_index])}")
+
 
     print(f"Number of exemplars per class: {m}")
     print(f"Number of classes in the current task: {len(classes_task)}")

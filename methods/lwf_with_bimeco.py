@@ -55,19 +55,19 @@ def lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=None):
         num_classes = 10
         img_size = 28
         img_channels = 1
-        feature_dim = 320
+        feature_dim = 160
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device)  # Instantiate the model
         num_classes = 10
         img_size = 32
         img_channels = 3
-        feature_dim = 512
+        feature_dim = 1024
     elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device)  # Instantiate the model
         num_classes = 100
         img_size = 32
         img_channels = 3
-        feature_dim = 64
+        feature_dim = 1024
 
     for id_task, task in enumerate(datasets):
         print("="*100)
@@ -430,11 +430,11 @@ def lwf_with_bimeco_train_aux_net(old_model, auxiliary_network, model_short, mod
     # Compute the difference between the feature extractor outputs (BiMeCo)
     feat_ext_short_model_images_s = F.normalize(model_short.feature_extractor(images_s))
     feat_ext_long_model_images_s = F.normalize(model_long.feature_extractor(images_s))
-    diff_images_s = (feat_ext_short_model_images_s - feat_ext_long_model_images_s) ** 2 
+    diff_images_s = ((feat_ext_long_model_images_s -feat_ext_short_model_images_s)**2).sum()
 
     feat_ext_short_model_images_l = F.normalize(model_short.feature_extractor(images_l))
     feat_ext_long_model_images_l = F.normalize(model_long.feature_extractor(images_l))
-    diff_images_l = (feat_ext_short_model_images_l - feat_ext_long_model_images_l) ** 2 
+    diff_images_l = ((feat_ext_long_model_images_l - feat_ext_short_model_images_l)**2).sum()  
 
     diff = torch.cat((diff_images_s, diff_images_l), dim=0) # Concatenate the differences
 
@@ -442,13 +442,13 @@ def lwf_with_bimeco_train_aux_net(old_model, auxiliary_network, model_short, mod
     if loss_ANCL is None:
         loss = F.cross_entropy(output, labels) + args.lwf_lambda * penalty + \
                 args.lwf_aux_lambda * aux_loss  + args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) + \
-                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff.sum()
+                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff
     else:
         old_pred = old_model(images)
         loss_criterion = criterion(output, labels, task=1, targets_old=old_pred, lwf_lambda=args.lwf_lambda,
                             targets_aux=aux_pred, lwf_aux_lambda=args.lwf_aux_lambda)
         loss = loss_criterion + args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) + \
-                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff.sum()
+                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff
 
     
     epoch_loss = loss.item()
@@ -457,8 +457,8 @@ def lwf_with_bimeco_train_aux_net(old_model, auxiliary_network, model_short, mod
     auxiliar_loss = aux_loss.item()
     loss_short = F.cross_entropy(output_short, labels_s).item() 
     loss_long = F.cross_entropy(output_long, labels_l).item() 
-    loss_diff_images_s = diff_images_s.sum().item() 
-    loss_diff_images_l = diff_images_l.sum().item()
+    loss_diff_images_s = diff_images_s.item() 
+    loss_diff_images_l = diff_images_l.item()
     
     loss.backward() # Backward pass
 
@@ -490,25 +490,25 @@ def lwf_with_bimeco_train(old_model, model_short, model_long, optimizer_short, o
     # Compute the difference between the feature extractor outputs (BiMeCo)
     feat_ext_short_model_images_s = F.normalize(model_short.feature_extractor(images_s))
     feat_ext_long_model_images_s = F.normalize(model_long.feature_extractor(images_s))
-    diff_images_s = (feat_ext_short_model_images_s - feat_ext_long_model_images_s) ** 2 
+    diff_images_s = ((feat_ext_long_model_images_s -feat_ext_short_model_images_s)**2).sum()
 
     feat_ext_short_model_images_l = F.normalize(model_short.feature_extractor(images_l))
     feat_ext_long_model_images_l = F.normalize(model_long.feature_extractor(images_l))
-    diff_images_l = (feat_ext_short_model_images_l - feat_ext_long_model_images_l) ** 2 
+    diff_images_l = ((feat_ext_long_model_images_l - feat_ext_short_model_images_l)**2).sum() 
 
-    diff = torch.cat((diff_images_s, diff_images_l), dim=0) # Concatenate the differences
+    diff = 0.5 * (diff_images_s + diff_images_l) # Concatenate the differences
 
     # Compute the overall loss (LwF and BiMeCo)
     if loss_ANCL is None:
         loss = F.cross_entropy(output, labels) + args.lwf_lambda * penalty + \
                 args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) + \
-                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff.sum()
+                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff
     else:
         old_pred = old_model(images)
         loss_criterion = criterion(output, labels, task=1, targets_old=old_pred, lwf_lambda=args.lwf_lambda,
                             targets_aux=None, lwf_aux_lambda=args.lwf_aux_lambda)
         loss = loss_criterion + args.bimeco_lambda_short * F.cross_entropy(output_short, labels_s) + \
-                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff.sum()
+                args.bimeco_lambda_long * F.cross_entropy(output_long, labels_l) + args.bimeco_lambda_diff * diff
 
     
     epoch_loss = loss.item()
@@ -517,8 +517,8 @@ def lwf_with_bimeco_train(old_model, model_short, model_long, optimizer_short, o
     auxiliar_loss = 0
     loss_short = F.cross_entropy(output_short, labels_s).item() 
     loss_long = F.cross_entropy(output_long, labels_l).item() 
-    loss_diff_images_s = diff_images_s.sum().item() 
-    loss_diff_images_l = diff_images_l.sum().item()
+    loss_diff_images_s = diff_images_s.item() 
+    loss_diff_images_l = diff_images_l.item()
     
     loss.backward() # Backward pass
 
@@ -637,6 +637,8 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     if args.dataset == "cifar100-alternative-dist":
         # Create the tasks dictionary to know the classes of each task
         list_tasks = [80,100] # Alternative distribution
+    elif args.dataset == "mnist":
+        list_tasks = [10,20]
     else:
         # Create the tasks dictionary to know the classes of each task
         list_tasks = [num_classes // args.num_tasks * i for i in range(1, args.num_tasks + 1)]
@@ -701,6 +703,7 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
         exemplar_set_label.append(exemplar_label) # Add the exemplar set labels to the exemplar set labels list
         images_ex = torch.empty((0, img_channels, img_size, img_size))
         labels_ex = torch.empty((0), dtype=torch.long) # Reset the labels variable
+        print(f"Class {class_index} exemplar set size: {len(exemplar_set_img[class_index])}")
 
     print(f"Number of exemplars per class: {m}")
     print(f"Number of classes in the current task: {len(classes_task)}")

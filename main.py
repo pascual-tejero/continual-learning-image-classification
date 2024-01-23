@@ -64,7 +64,7 @@ def main(args):
     elif args.dataset == "cifar100-alternative-dist":
         datasets = get_dataset_cifar100_alternative_dist(args)
 
-    # Create a dictionary to save the results
+    # # Create a dictionary to save the results
     dicc_results_test = {}
 
     # Train the model using the naive approach (no continual learning) for fine-tuning
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     # General parameters
     argparse.add_argument('--exp_name', type=str, default="CL_methods")
     argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--epochs', type=int, default=500) # 500
+    argparse.add_argument('--epochs', type=int, default=1) # 500
     argparse.add_argument('--lr', type=float, default=0.001) # 0.001
     argparse.add_argument('--lr_decay', type=float, default=5) # 5
     argparse.add_argument('--lr_patience', type=int, default=10) # 10
@@ -120,7 +120,7 @@ if __name__ == '__main__':
     argparse.add_argument('--num_tasks', type=int, default=2) # 2
 
     # Dataset parameters: mnist, cifar10, cifar100, cifar100-alternative-dist
-    argparse.add_argument('--dataset', type=str, default="cifar100-alternative-dist")
+    argparse.add_argument('--dataset', type=str, default="cifar100")
 
     # EWC parameters
     argparse.add_argument('--ewc_lambda' , type=float, default=1000) # 1000

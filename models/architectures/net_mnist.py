@@ -42,5 +42,11 @@ class Net_mnist(nn.Module):
     def feature_extractor(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+
+        out_horizontal = torch.mean(x, dim=3)  # Average pooling along dimension 3 (width)
+        out_vertical = torch.mean(x, dim=2) # Average pooling along dimension 2 (height)
+
+        # Concatenate the two outputs
+        out_pooled = torch.cat([out_horizontal, out_vertical], dim=2).view(x.size(0), -1).view(x.size(0), -1)
         
-        return x.view(-1, 320)
+        return out_pooled
