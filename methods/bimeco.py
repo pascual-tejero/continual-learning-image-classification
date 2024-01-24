@@ -156,11 +156,6 @@ def bimeco_training(datasets, args):
                                                                 # batch_size=args.batch_size,
                                                                 batch_size=int(ratio*args.batch_size), # Same ratio as the paper
                                                                 shuffle=True)
-            
-            train_loss_epoch = 0
-            total_epoch_loss_short, total_epoch_loss_long = 0, 0
-            total_output_short, total_output_long = 0, 0
-            total_diff_images_l, total_diff_images_s = 0, 0
 
             data_loader_exem_iter = iter(data_loader_exem)
             train_dataloader_l_iter = iter(train_dataloader_l)
@@ -168,6 +163,11 @@ def bimeco_training(datasets, args):
             for epoch in range(args.epochs):
                 print("="*100)
                 print(f"METHOD: BiMeCo -> Train on task {id_task+1}, Epoch: {epoch+1}")
+
+                train_loss_epoch = 0
+                total_epoch_loss_short, total_epoch_loss_long = 0, 0
+                total_output_short, total_output_long = 0, 0
+                total_diff_images_l, total_diff_images_s = 0, 0
                 
                 # Sample a batch of data from train_dataloader_s
                 for images_s, labels_s in train_dataloader_s:
