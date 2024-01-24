@@ -17,7 +17,13 @@ def save_model(model, args, id_task_dataset, method="naive", joint_datasets=Fals
     os.makedirs(f'./models/models_saved/{args.exp_name}/{method}_{args.dataset}', exist_ok=True)
     path = f'./models/models_saved/{args.exp_name}/{method}_{args.dataset}'
 
+    tasks_id = [x for x in range(1,id_task_dataset+1)]
+    if tasks_id == []:
+        tasks_id = [0]
+    elif len(tasks_id) > 6:
+        tasks_id = id_task_dataset
+
     if not joint_datasets:
-        torch.save(model.state_dict(), f'{path}/{method}_aftertask_{id_task_dataset}_{args.dataset}.pt')
+        torch.save(model.state_dict(), f'{path}/{method}-aftertask{str(tasks_id)}.pt')
     else:
-        torch.save(model.state_dict(), f'{path}/{method}_{args.dataset}.pt')
+        torch.save(model.state_dict(), f'{path}/{method}.pt')

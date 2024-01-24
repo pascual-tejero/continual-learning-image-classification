@@ -1,10 +1,8 @@
 import torch
-from torch import nn
 import torch.nn.functional as F
 import torch.optim as optim
 
 import xlsxwriter
-import os
 import sys
 import copy
 import numpy as np
@@ -26,9 +24,10 @@ def bimeco_training(datasets, args, config):
     print("="*100)
 
     path_file = f'./results/{args.exp_name}/BiMeCo_{args.dataset}.xlsx'
-    workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
     test_acc_final = []  # List to save the average accuracy of each task
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    torch.manual_seed(args.seed)  # Set the seed
+
     exemplar_set_img = []  # List to save the exemplar set
     exemplar_set_label = []  # List to save the exemplar set labels
     
@@ -38,19 +37,19 @@ def bimeco_training(datasets, args, config):
         num_classes = 10
         img_size = 28
         img_channels = 1
-        feature_dim = 320
+        feature_dim = 160
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device)  # Instantiate the model
         num_classes = 10
         img_size = 32
         img_channels = 3
-        feature_dim = 512
-    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
+        feature_dim = 1024
+    elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device)  # Instantiate the model
         num_classes = 100
         img_size = 32
         img_channels = 3
-        feature_dim = 64
+        feature_dim = 1024
 
     for id_task, task in enumerate(datasets):
         print("="*100)
@@ -67,7 +66,6 @@ def bimeco_training(datasets, args, config):
                         "Test task": [], "Test loss": [], "Test accuracy": [], "Test average accuracy": []}
 
         train_dataset, val_dataset, _ = task  # Get the images and labels from the task
-
 
         # Make the dataloader
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
@@ -92,7 +90,7 @@ def bimeco_training(datasets, args, config):
                 # Test
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, datasets, device, args)
 
-                # Append the results to dicc_results
+                # Upload the results to wandb
                 wandb.log({"Task 1/Epoch": epoch+1, 
                            "Task 1/Train loss": train_loss_epoch, 
                            "Task 1/Validation loss": val_loss_epoch, 
@@ -100,8 +98,8 @@ def bimeco_training(datasets, args, config):
                            "Task 1/Test loss task 2": test_tasks_loss[1], 
                            "Task 1/Test accuracy task 1": test_tasks_accuracy[0],
                            "Task 1/Test accuracy task 2": test_tasks_accuracy[1],
-                           "Task 1/Test average accuracy": avg_accuracy})  
-                                            
+                           "Task 1/Test average accuracy": avg_accuracy})
+                
                 # Early stopping
                 if val_loss_epoch < best_val_loss:
                     best_val_loss = val_loss_epoch
@@ -132,8 +130,16 @@ def bimeco_training(datasets, args, config):
                     test_acc_final.append([test_tasks_accuracy, avg_accuracy])
 
         else:
+
+            # Prepare the old model
+            tasks_id = [x for x in range(1,id_task+1)]
+            if tasks_id == []:
+                tasks_id = [0]
+            elif len(tasks_id) > 6:
+                tasks_id = id_task
+
             path_model = (f"./models/models_saved/{args.exp_name}/BiMeCo_{args.dataset}/"
-                          f"BiMeCo_aftertask_{id_task}_{args.dataset}.pt")
+                          f"BiMeCo-aftertask{str(tasks_id)}.pt")
             
             # Load model for short term memory
             model_short = copy.deepcopy(model) 
@@ -155,11 +161,6 @@ def bimeco_training(datasets, args, config):
                                                                 # batch_size=args.batch_size,
                                                                 batch_size=int(ratio*args.batch_size), # Same ratio as the paper
                                                                 shuffle=True)
-            
-            train_loss_epoch = 0
-            total_epoch_loss_short, total_epoch_loss_long = 0, 0
-            total_output_short, total_output_long = 0, 0
-            total_diff_images_l, total_diff_images_s = 0, 0
 
             data_loader_exem_iter = iter(data_loader_exem)
             train_dataloader_l_iter = iter(train_dataloader_l)
@@ -167,6 +168,11 @@ def bimeco_training(datasets, args, config):
             for epoch in range(args.epochs):
                 print("="*100)
                 print(f"METHOD: BiMeCo -> Train on task {id_task+1}, Epoch: {epoch+1}")
+
+                train_loss_epoch = 0
+                total_epoch_loss_short, total_epoch_loss_long = 0, 0
+                total_output_short, total_output_long = 0, 0
+                total_diff_images_l, total_diff_images_s = 0, 0
                 
                 # Sample a batch of data from train_dataloader_s
                 for images_s, labels_s in train_dataloader_s:
@@ -221,7 +227,7 @@ def bimeco_training(datasets, args, config):
                 print(f"Train loss output long: {total_output_long * config['bimeco_lambda_long']}")
                 print(f"Train loss diff images s: {total_diff_images_s}")
                 print(f"Train loss diff images l: {total_diff_images_l}")
-                print(f"Sum diff images: {(total_diff_images_l + total_diff_images_s)*config['bimeco_lambda_diff']}")
+                print(f"Sum diff images: {0.5*(total_diff_images_l + total_diff_images_s)*config['bimeco_lambda_diff']}")
 
                 # Update the parameters of the long term memory model
                 for param_l, param_s in zip(model_long.parameters() ,  model_short.parameters()):
@@ -234,18 +240,19 @@ def bimeco_training(datasets, args, config):
                 # Test
                 test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model_long, datasets, device, args)
 
-                # Append the results to dicc_results
-                wandb.log({"Task 2/Epoch": epoch+1, 
-                           "Task 2/Train loss": train_loss_epoch,
-                           "Task 2/Train loss output short": total_output_short * config['bimeco_lambda_short'],
-                            "Task 2/Train loss output long": total_output_long * config['bimeco_lambda_long'],
-                            "Task 2/Sum diff images": (total_diff_images_l + total_diff_images_s)*config['bimeco_lambda_diff'],
-                            "Task 2/Validation loss": val_loss_epoch, 
-                            "Task 2/Test loss task 1": test_tasks_loss[0],
-                            "Task 2/Test loss task 2": test_tasks_loss[1], 
-                            "Task 2/Test accuracy task 1": test_tasks_accuracy[0],
-                            "Task 2/Test accuracy task 2": test_tasks_accuracy[1],
-                            "Task 2/Test average accuracy": avg_accuracy})
+                # Upload the results to wandb
+                wandb.log({f"Task {id_task+1}/Epoch": epoch+1,
+                            f"Task {id_task+1}/Train loss": train_loss_epoch, 
+                            f"Task {id_task+1}/Cross entropy loss": total_epoch_loss_long, 
+                            f"Task {id_task+1}/Short loss": total_output_short * config['bimeco_lambda_short'], 
+                            f"Task {id_task+1}/Long loss": total_output_long * config['bimeco_lambda_long'], 
+                            f"Task {id_task+1}/Sum diff images": 0.5*(total_diff_images_l + total_diff_images_s)*config['bimeco_lambda_diff'], 
+                            f"Task {id_task+1}/Validation loss": val_loss_epoch, 
+                            f"Task {id_task+1}/Test loss task 1": test_tasks_loss[0],
+                            f"Task {id_task+1}/Test loss task 2": test_tasks_loss[1], 
+                            f"Task {id_task+1}/Test accuracy task 1": test_tasks_accuracy[0],
+                            f"Task {id_task+1}/Test accuracy task 2": test_tasks_accuracy[1],
+                            f"Task {id_task+1}/Test average accuracy": avg_accuracy})
                 
                 # Early stopping
                 if val_loss_epoch < best_val_loss:
@@ -298,8 +305,6 @@ def bimeco_training(datasets, args, config):
                                                            shuffle=True)
         
 
-    workbook.close()  # Close the excel file
-
     return test_acc_final
 
 
@@ -334,32 +339,32 @@ def bimeco_train(model_short, model_long, optimizer_short, optimizer_long, image
     # Compute the difference between the feature extractor outputs
     feat_ext_short_model_images_s = F.normalize(model_short.feature_extractor(images_s))
     feat_ext_long_model_images_s = F.normalize(model_long.feature_extractor(images_s))
-    diff_images_s = (feat_ext_short_model_images_s - feat_ext_long_model_images_s) ** 2 
+    diff_images_s = ((feat_ext_long_model_images_s -feat_ext_short_model_images_s)**2).sum()
 
     feat_ext_short_model_images_l = F.normalize(model_short.feature_extractor(images_l))
     feat_ext_long_model_images_l = F.normalize(model_long.feature_extractor(images_l))
-    diff_images_l = (feat_ext_short_model_images_l - feat_ext_long_model_images_l) ** 2 
+    diff_images_l = ((feat_ext_long_model_images_l - feat_ext_short_model_images_l)**2).sum()
 
-    diff = torch.cat((diff_images_s, diff_images_l), dim=0) # Concatenate the differences
+    diff = 0.5 * (diff_images_l + diff_images_s)
 
     # Compute the loss
-    loss = (config["bimeco_lambda_short"] * F.cross_entropy(output_short, labels_s) + 
-            config["bimeco_lambda_long"] * F.cross_entropy(output_long, labels_l) + 
-            config["bimeco_lambda_diff"] * diff.sum()) 
+    loss = (config["bimeco_lambda_short"] * F.cross_entropy(output_short, labels_s) +
+            config["bimeco_lambda_long"] * F.cross_entropy(output_long, labels_l) +
+            config["bimeco_lambda_diff"] * diff)
     
     epoch_loss_short = loss.item()
     epoch_loss_long = loss.item()
     output_short = F.cross_entropy(output_short, labels_s).item()
     output_long = F.cross_entropy(output_long, labels_l).item()
-    diff_images_s = diff_images_s.sum().item() 
-    diff_images_l = diff_images_l.sum().item()
+    loss_diff_images_s = diff_images_s.item() 
+    loss_diff_images_l = diff_images_l.item()
     
     loss.backward() # Backward pass
 
     optimizer_short.step() # Update the parameters of the short term memory model
     optimizer_long.step() # Update the parameters of the long term memory model
 
-    return epoch_loss_short, epoch_loss_long, output_short, output_long, diff_images_l, diff_images_s
+    return epoch_loss_short, epoch_loss_long, output_short, output_long, loss_diff_images_s, loss_diff_images_l
 
 def bimeco_val(model_short, model_long, data_loader, device):
     model_long.eval()
@@ -449,9 +454,11 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     exemplar_set_label = [cls[:m] for cls in exemplar_set_label]
     print(f"Size of class {index} exemplar: {len(exemplar_set_img[index])}" for index in range(len(exemplar_set_img)))
 
-    if args.dataset == "cifar100_alternative_dist":
+    if args.dataset == "cifar100-alternative-dist":
         # Create the tasks dictionary to know the classes of each task
         list_tasks = [80,100]
+    elif args.dataset == "mnist":
+        list_tasks = [10,20]
     else:
         # Create the tasks dictionary to know the classes of each task
         list_tasks = [num_classes // args.num_tasks * i for i in range(1, args.num_tasks + 1)]
@@ -472,22 +479,27 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
     train_labels = torch.stack(train_labels)
 
     for class_index in classes_task:
-        exit = False
         selected_indexes = torch.where(train_labels == class_index)[0]
         images_ex = torch.cat((images_ex, train_images[selected_indexes]), dim=0)
         labels_ex = torch.cat((labels_ex, train_labels[selected_indexes]), dim=0)
 
         # Construct the exemplar set
         feature_extractor_output = F.normalize(model.feature_extractor(images_ex.to(device))).cpu().detach().numpy()
+        # print(f"Feature extractor output shape: {feature_extractor_output.shape}")
         class_mean = np.mean(feature_extractor_output, axis=0)
+        # print(f"Class mean shape: {class_mean.shape}")
+
 
         exemplar_img = [] # List to save the exemplar set
         exemplar_label = [] # List to save the exemplar set labels
         now_class_mean = np.zeros((1, feature_dim)) # Current class mean
+        # print(f"Now class mean shape: {now_class_mean.shape}")
 
         selected_indexes = set() # Set to save the selected indexes
+
         # Construct the exemplar set
         for k in range(m):
+            exit = False
             x = class_mean - (feature_extractor_output + now_class_mean) / (k + 1) # Equation 4
             x = np.linalg.norm(x, axis=1)
 
@@ -515,6 +527,8 @@ def after_train(model, exemplar_set_img, exemplar_set_label, train_dataset, devi
         exemplar_set_label.append(exemplar_label) # Add the exemplar set labels to the exemplar set labels list
         images_ex = torch.empty((0, img_channels, img_size, img_size))
         labels_ex = torch.empty((0), dtype=torch.long) # Reset the labels variable
+        print(f"Class {class_index} exemplar set size: {len(exemplar_set_img[class_index])}")
+
 
     print(f"Number of exemplars per class: {m}")
     print(f"Number of classes in the current task: {len(classes_task)}")

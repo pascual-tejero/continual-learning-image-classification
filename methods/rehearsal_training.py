@@ -3,7 +3,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import xlsxwriter
-import os
 import sys
 import copy
 
@@ -15,34 +14,36 @@ from models.architectures.net_mnist import Net_mnist
 from models.architectures.net_cifar10 import Net_cifar10
 from models.architectures.net_cifar100 import Net_cifar100
 
-def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=False):
+def rehearsal_training(datasets, args, rehearsal_prop, random_rehearsal=False):
     """
     In this function, we train the model using the rehearsal approach.
 
     :param datasets: list of datasets
     :param args: arguments from the command line
-    :param rehearsal_percentage: percentage of rehearsal data
+    :param rehearsal_prop: percentage of rehearsal data
     :param random_rehearsal: if True, rehearse randomly
 
     :return: test_acc_final: list with the test accuracy of each task and the test average accuracy
 
     """
+    rehearsal_perc = int(rehearsal_prop*100) # Percentage of rehearsal data
     print("\n")
     print("="*100)
-    print(f"Training: REHEARSAL approach, percentage: {rehearsal_percentage*100}%...")
+    print(f"Training: REHEARSAL approach, percentage: {rehearsal_perc}%...")
     print("="*100)
 
-    path_file = f"./results/{args.exp_name}/rehearsal_{rehearsal_percentage}_{args.dataset}.xlsx"
+    path_file = f"./results/{args.exp_name}/rehearsal{rehearsal_perc}%_{args.dataset}.xlsx"
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
     test_acc_final = [] # List to save the test accuracy of each task and the test average accuracy
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    torch.manual_seed(args.seed) # Set the seed
 
     # Create model
     if args.dataset == "mnist":
         model = Net_mnist().to(device) # Instantiate the mod
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device) # Instantiate the model
-    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
+    elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device) # Instantiate the model
 
     for id_task, task in enumerate(datasets):
@@ -64,7 +65,7 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
             # Make the dataloader for the rehearsal data
             rehearsal_data_train, rehearsal_data_val = add_prev_tasks_to_current_task(datasets, 
                                                                                       id_task, 
-                                                                                      rehearsal_percentage, 
+                                                                                      rehearsal_prop, 
                                                                                       random_rehearsal)
         else:
             rehearsal_data_train, rehearsal_data_val, _ = task  # Get the images and labels from the task
@@ -79,8 +80,9 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
 
         for epoch in range(args.epochs):
             print("="*100)
-            print(f"METHOD: Rehearsal training -> Train on task {id_task+1} -> Epoch: {epoch+1}")
-
+            print(f"METHOD: Rehearsal training {rehearsal_perc}% "
+                   f"-> Train on task {id_task+1} -> Epoch: {epoch+1}")
+            
             # Training
             train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task+1)
 
@@ -131,10 +133,10 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
 
         # Save the results of the task
         save_training_results(dicc_results, workbook, id_task+1, 
-                              training_name=f"rehearsal_{rehearsal_percentage}")
+                              training_name=f"rehearsal{rehearsal_perc}%")
 
         # Save the best model after each task
-        save_model(model_best, args, id_task+1, method=f"rehearsal_{rehearsal_percentage}")
+        save_model(model_best, args, id_task+1, method=f"rehearsal{rehearsal_perc}%")
 
     # Close the excel file
     workbook.close()
@@ -142,7 +144,7 @@ def rehearsal_training(datasets, args, rehearsal_percentage, random_rehearsal=Fa
     return test_acc_final
 
 
-def add_prev_tasks_to_current_task(datasets, id_task, rehearsal_percentage, random_rehearsal=True):
+def add_prev_tasks_to_current_task(datasets, id_task, rehearsal_prop, random_rehearsal=True):
     """
     Add the previous datasets (lower ids) to the current dataset (higher id) to perform rehearsal.
     """
@@ -153,8 +155,8 @@ def add_prev_tasks_to_current_task(datasets, id_task, rehearsal_percentage, rand
     rehearsal_data_val = current_dataset[1] # Get the validation data from the current dataset
 
     for (train_set, val_set, _) in previous_datasets: # Iterate over the previous datasets
-        num_samples_train = int(len(train_set) * rehearsal_percentage) # Get the number of samples to rehearse
-        num_samples_val = int(len(val_set) * rehearsal_percentage) # Get the number of samples to rehearse
+        num_samples_train = int(len(train_set) * rehearsal_prop) # Get the number of samples to rehearse
+        num_samples_val = int(len(val_set) * rehearsal_prop) # Get the number of samples to rehearse
 
         if random_rehearsal: # If we want to rehearse randomly
 
@@ -177,7 +179,7 @@ def add_prev_tasks_to_current_task(datasets, id_task, rehearsal_percentage, rand
         rehearsal_data_val = torch.utils.data.ConcatDataset([rehearsal_data_val, subset_data_val]) # Concatenate the data
 
     print("="*100)
-    print(f"Training a new task with rehearsal, percentage ({rehearsal_percentage*100}%):")
+    print(f"Training a new task with rehearsal, percentage ({int(rehearsal_prop*100)}%) of rehearsal data")
     print(f"Adding previous data -> Rehearsal data: {len(rehearsal_data_train)} training samples data and "
             f"{len(rehearsal_data_val)} validation samples")
     

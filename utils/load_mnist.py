@@ -38,7 +38,17 @@ def download_file_mnist(url, filename, download_path='./datasets/mnist/'):
     os.makedirs(download_path, exist_ok=True)
     
     # Download the file to the specified directory
-    opener.retrieve(url, target_path)
+    # opener.retrieve(url, target_path)
+    response = requests.get(url, stream=True)
+    total_size_in_bytes = int(response.headers.get('content-length', 0))
+
+    with tqdm(total=total_size_in_bytes, unit='B', unit_scale=True) as pbar:
+        with open(target_path, 'wb') as f:
+            block_size = 1024
+            for data in response.iter_content(block_size):
+                pbar.update(len(data))
+                f.write(data)
+
 
 
 

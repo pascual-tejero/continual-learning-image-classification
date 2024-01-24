@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -53,12 +54,15 @@ class Net_cifar10(nn.Module):
         x = self.conv3(x)
         x = self.relu3(x)
         x = self.maxpool3(x)
-
-        x = self.flatten(x)
-        x = self.fc1(x)
-        x = self.relu4(x)
         
-        return x  # Return features before the fully connected layer
+        out_horizontal = torch.mean(x, dim=3)  # Average pooling along dimension 3 (width)
+        out_vertical = torch.mean(x, dim=2) # Average pooling along dimension 2 (height)
+
+        # Concatenate the two outputs
+        out_pooled = torch.cat([out_horizontal, out_vertical], dim=2).view(x.size(0), -1).view(x.size(0), -1)
+
+        return out_pooled
+
 
 # class Net_cifar10(nn.Module):
 #     """

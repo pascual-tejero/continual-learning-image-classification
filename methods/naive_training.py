@@ -3,7 +3,6 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 import xlsxwriter
-import os
 import sys
 import copy
 
@@ -36,7 +35,7 @@ def naive_training(datasets, args, joint_datasets=False):
 
     # Create the excel file
     if joint_datasets:
-        path_file = f"./results/{args.exp_name}/naive_joint-training_{args.dataset}.xlsx"
+        path_file = f"./results/{args.exp_name}/joint-training_{args.dataset}.xlsx"
 
         concat_datasets = [] # List to save the joint dataset
         train_dataset, val_dataset, test_dataset = datasets[0] # Get the images and labels from the task
@@ -51,18 +50,19 @@ def naive_training(datasets, args, joint_datasets=False):
         concat_datasets.append([train_dataset, val_dataset, test_dataset]) # Append the datasets to the joint dataset
         datasets = concat_datasets # Set the datasets to the joint dataset
     else:
-        path_file = f"./results/{args.exp_name}/naive_fine-tuning_{args.dataset}.xlsx"
-    
+        path_file = f"./results/{args.exp_name}/fine-tuning_{args.dataset}.xlsx"
+
     workbook = xlsxwriter.Workbook(path_file) # Create the excel file
     test_acc_final = [] # List to save the test accuracy of each task and the test average accuracy
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    torch.manual_seed(args.seed) # Set the seed
 
     # Instantiate the model
     if args.dataset == "mnist":
         model = Net_mnist().to(device) 
     elif args.dataset == "cifar10":
         model = Net_cifar10().to(device) 
-    elif args.dataset == "cifar100" or args.dataset == "cifar100_alternative_dist":
+    elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device)
 
     for id_task, task in enumerate(datasets):
