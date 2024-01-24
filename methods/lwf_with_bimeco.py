@@ -181,7 +181,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=None):
                                 param_group['lr'] = lr_aux
                             auxiliary_network.load_state_dict(model_best_aux.state_dict())
                     
-                    print(f"Current learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience_aux}")
+                    print(f"Current learning rate: {optimizer_aux.param_groups[0]['lr']}, Patience: {patience_aux}")
 
                     if epoch == args.epochs-1:
                         auxiliary_network = copy.deepcopy(model_best_aux).to(device)
