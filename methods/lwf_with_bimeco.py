@@ -436,7 +436,7 @@ def lwf_with_bimeco_train_aux_net(old_model, auxiliary_network, model_short, mod
     feat_ext_long_model_images_l = F.normalize(model_long.feature_extractor(images_l))
     diff_images_l = ((feat_ext_long_model_images_l - feat_ext_short_model_images_l)**2).sum()  
 
-    diff = torch.cat((diff_images_s, diff_images_l), dim=0) # Concatenate the differences
+    diff = 0.5 * (diff_images_s + diff_images_l) 
 
     # Compute the overall loss (LwF and BiMeCo)
     if loss_ANCL is None:
