@@ -229,11 +229,6 @@ def lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=None):
                                                                 # batch_size=args.batch_size,
                                                                 batch_size=int(ratio*args.batch_size),
                                                                 shuffle=True)
-            
-            train_loss_epoch = 0
-            ce_loss_epoch, penalty_loss_epoch, auxiliar_loss_epoch = 0, 0, 0
-            short_loss_epoch, long_loss_epoch = 0, 0
-            diff_fe_images_s_epoch, diff_fe_images_l_epoch = 0, 0
 
             data_loader_exem_iter = iter(data_loader_exem)
             train_dataloader_l_iter = iter(train_dataloader_l)
@@ -241,6 +236,11 @@ def lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=None):
             for epoch in range(args.epochs):
                 print("="*100)
                 print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
+
+                train_loss_epoch = 0
+                ce_loss_epoch, penalty_loss_epoch, auxiliar_loss_epoch = 0, 0, 0
+                short_loss_epoch, long_loss_epoch = 0, 0
+                diff_fe_images_s_epoch, diff_fe_images_l_epoch = 0, 0
                 
                 # Sample a batch of data from train_dataloader_s
                 for images, labels in train_dataloader_s:
