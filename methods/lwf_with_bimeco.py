@@ -496,7 +496,7 @@ def lwf_with_bimeco_train(old_model, model_short, model_long, optimizer_short, o
     feat_ext_long_model_images_l = F.normalize(model_long.feature_extractor(images_l))
     diff_images_l = ((feat_ext_long_model_images_l - feat_ext_short_model_images_l)**2).sum() 
 
-    diff = 0.5 * (diff_images_s + diff_images_l) # Concatenate the differences
+    diff = 0.5 * (diff_images_s + diff_images_l)
 
     # Compute the overall loss (LwF and BiMeCo)
     if loss_ANCL is None:
