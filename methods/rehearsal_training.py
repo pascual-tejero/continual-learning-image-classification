@@ -45,6 +45,8 @@ def rehearsal_training(datasets, args, rehearsal_prop, random_rehearsal=False):
         model = Net_cifar10().to(device) # Instantiate the model
     elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device) # Instantiate the model
+        
+    print(f"Number of parameters: {sum(p.numel() for p in model.parameters())}")
 
     for id_task, task in enumerate(datasets):
         print("="*100)
@@ -80,7 +82,7 @@ def rehearsal_training(datasets, args, rehearsal_prop, random_rehearsal=False):
 
         for epoch in range(args.epochs):
             print("="*100)
-            print(f"METHOD: Rehearsal training {rehearsal_perc}% "
+            print(f"METHOD: Rehearsal training {rehearsal_perc}% (Experiment: {args.exp_name}) "
                    f"-> Train on task {id_task+1} -> Epoch: {epoch+1}")
             
             # Training

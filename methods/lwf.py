@@ -52,6 +52,8 @@ def lwf_training(datasets, args, aux_training=False, loss_ANCL=None):
         model = Net_cifar10().to(device)  # Instantiate the model
     elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device)  # Instantiate the model
+        
+    print(f"Number of parameters: {sum(p.numel() for p in model.parameters())}")
 
     for id_task, task in enumerate(datasets):
         print("="*100)
@@ -80,7 +82,7 @@ def lwf_training(datasets, args, aux_training=False, loss_ANCL=None):
         if id_task == 0:
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: {method_print} (Experiment: {args.exp_name}) -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 # Training
                 train_loss_epoch = normal_train(model, optimizer, train_loader, loss_ANCL)
@@ -141,7 +143,7 @@ def lwf_training(datasets, args, aux_training=False, loss_ANCL=None):
                 for epoch in range(args.epochs):
                     print("="*100)
                     print("Train the auxiliary network...")
-                    print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                    print(f"METHOD: {method_print} (Experiment: {args.exp_name}) -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                     normal_train(auxiliary_network, optimizer_aux, train_loader, loss_ANCL)
                     val_loss_epoch_aux = normal_val(auxiliary_network, val_loader, loss_ANCL)
@@ -197,7 +199,7 @@ def lwf_training(datasets, args, aux_training=False, loss_ANCL=None):
 
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: {method_print} -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: {method_print} (Experiment: {args.exp_name}) -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 if not aux_training:
                     # Training

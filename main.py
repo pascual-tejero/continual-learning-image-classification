@@ -15,6 +15,7 @@ from methods.ewc import ewc_training
 from methods.lwf import lwf_training
 from methods.bimeco import bimeco_training
 from methods.lwf_with_bimeco import lwf_with_bimeco
+from methods.lwf_with_membuffer import lwf_with_membuffer
 
 
 def main(args):
@@ -109,24 +110,24 @@ if __name__ == '__main__':
     argparse = argparse.ArgumentParser()
 
     # General parameters
-    argparse.add_argument('--exp_name', type=str, default="CL_methods")
+    argparse.add_argument('--exp_name', type=str, default="results_more_parameters_NoMomentum")
     argparse.add_argument('--seed', type=int, default=0)
     argparse.add_argument('--epochs', type=int, default=500) # 500
     argparse.add_argument('--lr', type=float, default=0.001) # 0.001
     argparse.add_argument('--lr_decay', type=float, default=5) # 5
     argparse.add_argument('--lr_patience', type=int, default=10) # 10
-    argparse.add_argument('--lr_min', type=float, default=1e-7) # 1e-8
+    argparse.add_argument('--lr_min', type=float, default=1e-8) # 1e-8
     argparse.add_argument('--batch_size', type=int, default=200) # 200
     argparse.add_argument('--num_tasks', type=int, default=2) # 2
 
     # Dataset parameters: mnist, cifar10, cifar100, cifar100-alternative-dist
-    argparse.add_argument('--dataset', type=str, default="cifar100-alternative-dist")
+    argparse.add_argument('--dataset', type=str, default="cifar100")
 
     # EWC parameters
-    argparse.add_argument('--ewc_lambda' , type=float, default=1000) # 1000
+    argparse.add_argument('--ewc_lambda' , type=float, default=100000) # 1000
 
     # Distillation parameters (LwF)
-    argparse.add_argument('--lwf_lambda' , type=float, default=0.80) # 1
+    argparse.add_argument('--lwf_lambda' , type=float, default=0.8) # 1
     argparse.add_argument('--lwf_aux_lambda' , type=float, default=0.75) # 0.5
 
     # BiMeCo parameters

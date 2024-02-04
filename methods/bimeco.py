@@ -48,7 +48,9 @@ def bimeco_training(datasets, args):
         num_classes = 100
         img_size = 32
         img_channels = 3
-        feature_dim = 1024
+        feature_dim = 2048 # 1024
+        
+    print(f"Number of parameters: {sum(p.numel() for p in model.parameters())}")
 
     for id_task, task in enumerate(datasets):
         print("="*100)
@@ -79,7 +81,7 @@ def bimeco_training(datasets, args):
 
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: BiMeCo -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: BiMeCo (Experiment: {args.exp_name}) -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 # Training
                 train_loss_epoch = normal_train(model, optimizer, train_loader, device)
@@ -162,7 +164,7 @@ def bimeco_training(datasets, args):
 
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: BiMeCo -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: BiMeCo (Experiment: {args.exp_name}) -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 train_loss_epoch = 0
                 total_epoch_loss_short, total_epoch_loss_long = 0, 0

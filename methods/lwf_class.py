@@ -128,29 +128,26 @@ def lwf_train_aux(model, old_model, optimizer, data_loader, lwf_lambda, auxiliar
         input, target = variable(input), variable(target)
         optimizer.zero_grad()
         output = model(input)
-
-        # Get the predictions of the current model
-        current_predictions = F.log_softmax(model(input), dim=1)
-        old_predictions = F.softmax(old_model(input), dim=1)
-
-        aux_pred = auxiliary_network(input)
         
         # Calculate the KL divergence between the current and old predictions
-        penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
+        penalty_lwf = F.kl_div(F.log_softmax(model(input), dim=1),
+                               F.softmax(old_model(input), dim=1), reduction='batchmean')
 
         # Get the predictions of the auxiliary network
-        aux_loss = F.cross_entropy(auxiliary_network(input), target)
+        aux_loss_lwf = F.kl_div(F.log_softmax(auxiliary_network(input), dim=1), 
+                                F.softmax(old_model(input), dim=1), reduction='batchmean')
 
         if loss_ANCL is None:
-            loss = F.cross_entropy(output, target) + lwf_lambda * penalty + lwf_aux_lambda * aux_loss
+            loss = F.cross_entropy(output, target) + lwf_lambda * penalty_lwf + lwf_aux_lambda * aux_loss_lwf
         else:
             old_pred = old_model(input)
+            aux_pred = auxiliary_network(input)
             loss = criterion(output, target, task=1, targets_old=old_pred, lwf_lambda=lwf_lambda,
                             targets_aux=aux_pred, lwf_aux_lambda=lwf_aux_lambda)
 
         epoch_loss += loss.data.item()
-        epoch_penalty_loss += penalty.data.item() * lwf_lambda
-        epoch_aux_loss += aux_loss.data.item() * lwf_aux_lambda
+        epoch_penalty_loss += penalty_lwf.data.item() * lwf_lambda
+        epoch_aux_loss += aux_loss_lwf.data.item() * lwf_aux_lambda
         loss.backward()
         optimizer.step()
 
@@ -171,21 +168,19 @@ def lwf_validate_aux(model, old_model, data_loader, lwf_lambda, auxiliary_networ
             input, target = variable(input), variable(target)
             output = model(input)
             
-            # Get the predictions of the current model
-            current_predictions = F.log_softmax(model(input), dim=1)
-            old_predictions = F.softmax(old_model(input), dim=1)
-            aux_pred = auxiliary_network(input)
-            
             # Calculate the KL divergence between the current and old predictions
-            penalty = F.kl_div(current_predictions, old_predictions, reduction='batchmean')
+            penalty_lwf = F.kl_div(F.log_softmax(model(input), dim=1),
+                                   F.softmax(old_model(input), dim=1), reduction='batchmean')
 
             # Get the predictions of the auxiliary network
-            aux_loss = F.cross_entropy(auxiliary_network(input), target)
+            aux_loss = F.kl_div(F.log_softmax(auxiliary_network(input), dim=1),
+                                F.softmax(old_model(input), dim=1), reduction='batchmean')
 
             if loss_ANCL is None:
-                loss += F.cross_entropy(output, target) + lwf_lambda * penalty + lwf_aux_lambda * aux_loss
+                loss += F.cross_entropy(output, target) + lwf_lambda * penalty_lwf + lwf_aux_lambda * aux_loss
             else:
                 old_pred = old_model(input)
+                aux_pred = auxiliary_network(input)
                 loss += criterion(output, target, task=1, targets_old=old_pred, lwf_lambda=lwf_lambda,
                                 targets_aux=aux_pred, lwf_aux_lambda=lwf_aux_lambda)
 

@@ -46,6 +46,8 @@ def ewc_training(datasets, args):
         model = Net_cifar10().to(device) # Instantiate the model
     elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device) # Instantiate the model
+        
+    print(f"Number of parameters: {sum(p.numel() for p in model.parameters())}")
 
     for id_task, task in enumerate(datasets):
         print("="*100)
@@ -74,7 +76,7 @@ def ewc_training(datasets, args):
         if id_task == 0:
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: EWC -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: EWC (Experiment: {args.exp_name}) -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 # Training
                 train_loss_epoch = normal_train(model, optimizer, train_loader)
@@ -139,7 +141,7 @@ def ewc_training(datasets, args):
                                                             
             for epoch in range(args.epochs):
                 print("="*100)
-                print(f"METHOD: EWC -> Train on task {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: EWC (Experiment: {args.exp_name}) -> Train on task {id_task+1}, Epoch: {epoch+1}")
 
                 # Training
                 train_loss_epoch = ewc_train(model, optimizer, train_loader, 

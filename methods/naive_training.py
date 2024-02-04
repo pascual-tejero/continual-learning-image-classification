@@ -64,6 +64,8 @@ def naive_training(datasets, args, joint_datasets=False):
         model = Net_cifar10().to(device) 
     elif args.dataset == "cifar100" or args.dataset == "cifar100-alternative-dist":
         model = Net_cifar100().to(device)
+        
+    print(f"Number of parameters: {sum(p.numel() for p in model.parameters())}")
 
     for id_task, task in enumerate(datasets):
         print("="*100)
@@ -92,9 +94,9 @@ def naive_training(datasets, args, joint_datasets=False):
         for epoch in range(args.epochs):
             print("="*100)
             if joint_datasets:
-                print(f"METHOD: Joint-training -> Train on task: {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: Joint-training (Experiment: {args.exp_name}) -> Train on task: {id_task+1}, Epoch: {epoch+1}")
             else:
-                print(f"METHOD: Fine-tuning -> Train on task: {id_task+1}, Epoch: {epoch+1}")
+                print(f"METHOD: Fine-tuning (Experiment: {args.exp_name}) -> Train on task: {id_task+1}, Epoch: {epoch+1}")
             
             # Training
             train_loss_epoch = train_epoch(model, device, train_loader, optimizer, id_task+1)

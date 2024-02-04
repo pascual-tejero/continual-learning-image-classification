@@ -16,29 +16,29 @@ from models.architectures.net_mnist import Net_mnist
 from models.architectures.net_cifar10 import Net_cifar10
 from models.architectures.net_cifar100 import Net_cifar100
 
-def lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=None):
+def lwf_with_membuffer(datasets, args, aux_training=False, loss_ANCL=None):
 
     print("\n")
     print("="*100)
-    print("Training on BiMeCo (Bilateral Memory Consolidation) and LwF (Learning without Forgetting)...")
+    print("Training on LwF (Learning without Forgetting) with Memory Buffer...")
     print("="*100)
 
     if aux_training and not loss_ANCL:
-        path_file = f'./results/{args.exp_name}/LwF-BiMeCo-auxNetwork_{args.dataset}.xlsx'
-        method_cl = "LwF-BiMeCo-auxNetwork"
-        method_print = "LwF with auxiliary network + BiMeCo"
+        path_file = f'./results/{args.exp_name}/LwF-MemBuffer-auxNetwork_{args.dataset}.xlsx'
+        method_cl = "LwF-MemBuffer-auxNetwork"
+        method_print = "LwF with auxiliary network + Memory Buffer"
     elif not aux_training and loss_ANCL:
-        path_file = f'./results/{args.exp_name}/LwF-BiMeCo-lossANCL{args.dataset}.xlsx'
-        method_cl = "LwF-BiMeCo-lossANCL"
-        method_print = "LwF with loss ANCL + BiMeCo"
+        path_file = f'./results/{args.exp_name}/LwF-MemBuffer-lossANCL{args.dataset}.xlsx'
+        method_cl = "LwF-MemBuffer-lossANCL"
+        method_print = "LwF with loss ANCL + Memory Buffer"
     elif aux_training and loss_ANCL:
-        path_file = f'./results/{args.exp_name}/LwF-BiMeCo-auxNetwork-lossANCL_{args.dataset}.xlsx'
-        method_cl = "LwF-BiMeCo-auxNetwork-lossANCL"
-        method_print = "LwF with auxiliary network and loss ANCL + BiMeCo"
+        path_file = f'./results/{args.exp_name}/LwF-MemBuffer-auxNetwork-lossANCL_{args.dataset}.xlsx'
+        method_cl = "LwF-MemBuffer-auxNetwork-lossANCL"
+        method_print = "LwF with auxiliary network and loss ANCL + Memory Buffer"
     else:
-        path_file = f'./results/{args.exp_name}/LwF-BiMeCo_{args.dataset}.xlsx'
-        method_cl = "LwF-BiMeCo"
-        method_print = "LwF + BiMeCo"
+        path_file = f'./results/{args.exp_name}/LwF-MemBuffer{args.dataset}.xlsx'
+        method_cl = "LwF-MemBuffer"
+        method_print = "LwF + Memory Buffer"
 
     # Create the workbook and worksheet to save the results
     workbook = xlsxwriter.Workbook(path_file)  # Create the excel file
@@ -208,33 +208,10 @@ def lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=None):
             old_model = copy.deepcopy(model).to(device)
             old_model.load_state_dict(torch.load(path_old_model))
             old_model.eval()
-
             for param in old_model.parameters():
                 param.requires_grad = False
-
-            # Load model for short term memory
-            model_short = copy.deepcopy(model).to(device)
-            model_short.load_state_dict(torch.load(path_old_model))
-
-            # Load model for long term memory
-            model_long = copy.deepcopy(model).to(device)
-            model_long.load_state_dict(torch.load(path_old_model))
-
-            # Create an optimizer for the short term memory model
-            optimizer_short = optim.Adam(model_short.parameters(), lr=args.lr)  # Instantiate the optimizer
-            optimizer_long = optim.Adam(model_long.parameters(), lr=args.lr)  # Instantiate the optimizer
-
-            # Compute the ratio of current task samples to previous task samples
-            ratio = len(tasks_dict[id_task]) / (len(tasks_dict[id_task]) + sum([len(tasks_dict[i]) for i in range(id_task)])) 
             
-            train_dataloader_s = train_loader
-            train_dataloader_l = torch.utils.data.DataLoader(dataset=train_dataset,
-                                                                batch_size=args.batch_size,
-                                                                # batch_size=int(ratio*args.batch_size),
-                                                                shuffle=True)
-
             data_loader_exem_iter = iter(data_loader_exem)
-            train_dataloader_l_iter = iter(train_dataloader_l)
 
             for epoch in range(args.epochs):
                 print("="*100)
@@ -242,80 +219,50 @@ def lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=None):
 
                 train_loss_epoch = 0
                 ce_loss_epoch, penalty_loss_epoch, auxiliar_loss_epoch = 0, 0, 0
-                short_loss_epoch, long_loss_epoch, diff_loss_epoch = 0, 0, 0
                 
                 # Sample a batch of data from train_dataloader_s
-                for images, labels in train_dataloader_s:
+                for images, labels in train_loader:
 
                     # Sample two different batches from data_loader_exem
                     try:
                         images_exem_1, labels_exem_1 = next(data_loader_exem_iter)
-                        images_exem_2, labels_exem_2 = next(data_loader_exem_iter)
                     except StopIteration:
                         data_loader_exem = torch.utils.data.DataLoader(dataset=torch.utils.data.TensorDataset(tensor_exem_img, tensor_exem_label),
                                                                     batch_size=args.batch_size,
                                                                     shuffle=True)
                         data_loader_exem_iter = iter(data_loader_exem)
                         images_exem_1, labels_exem_1 = next(data_loader_exem_iter)
-                        images_exem_2, labels_exem_2 = next(data_loader_exem_iter)
 
                     # Concatenate the images and labels of the first batch from data_loader_exem
-                    images_s = torch.cat((images, images_exem_1), dim=0).to(device)
-                    labels_s = torch.cat((labels, labels_exem_1), dim=0).to(device)
-
-                    # Randomly sample ratio * batch_size samples from train_dataloader_l
-                    try:
-                        images_l, labels_l = next(train_dataloader_l_iter)
-                    except StopIteration:
-                        train_dataloader_l = torch.utils.data.DataLoader(dataset=train_dataset,
-                                                                         batch_size=args.batch_size,
-                                                                        # batch_size=int(ratio*args.batch_size),
-                                                                        shuffle=True)
-                        train_dataloader_l_iter = iter(train_dataloader_l)
-                        images_l, labels_l = next(train_dataloader_l_iter)
-
-                    # Concatenate the images and labels of the second batch from data_loader_exem
-                    images_l = torch.cat((images_l, images_exem_2), dim=0).to(device)
-                    labels_l = torch.cat((labels_l, labels_exem_2), dim=0).to(device)
-
-                    images, labels = images.to(device), labels.to(device) # Move the images and labels to GPU
+                    images_concat = torch.cat((images, images_exem_1), dim=0).to(device)
+                    labels_concat = torch.cat((labels, labels_exem_1), dim=0).to(device)
 
                     # Forward pass
                     if not aux_training:
-                        epoch_loss, ce_loss, penalty_loss, aux_loss, loss_short, loss_long, diff_loss = ( 
-                            lwf_bimeco_train(old_model, None, model_short, model_long, optimizer_short, optimizer_long,
-                                            images, labels, images_s, labels_s, images_l, labels_l, args, device, loss_ANCL))
+                        epoch_loss, ce_loss, lwf_loss, aux_loss = (lwf_membuffer(model, old_model, None, optimizer, 
+                                                                                    images_concat, labels_concat, args, 
+                                                                                    loss_ANCL))
                     else:
-                        epoch_loss, ce_loss, penalty_loss, aux_loss, loss_short, loss_long, diff_loss = ( 
-                            lwf_bimeco_train(old_model, auxiliary_network, model_short, model_long, optimizer_short, optimizer_long,
-                                            images, labels, images_s, labels_s, images_l, labels_l, args, device, loss_ANCL))
+                        epoch_loss, ce_loss, lwf_loss, aux_loss = (lwf_membuffer(model, old_model, auxiliary_network, 
+                                                                                    optimizer, images_concat, labels_concat, 
+                                                                                    args, loss_ANCL))
 
                     train_loss_epoch += epoch_loss
                     ce_loss_epoch += ce_loss
-                    penalty_loss_epoch += penalty_loss
+                    penalty_loss_epoch += lwf_loss
                     auxiliar_loss_epoch += aux_loss
-                    short_loss_epoch += loss_short
-                    long_loss_epoch += loss_long
-                    diff_loss_epoch += diff_loss
 
                 # Print the results of the epoch
                 print(f"Train loss: {train_loss_epoch}")
                 print(f"Cross entropy loss: {ce_loss_epoch}")
                 print(f"Penalty loss: {penalty_loss_epoch}")
                 print(f"Auxiliary loss: {auxiliar_loss_epoch}")
-                print(f"Short term memory loss: {short_loss_epoch}")
-                print(f"Long term memory loss: {long_loss_epoch}")
-                print(f"Difference loss: {diff_loss_epoch}")
-
-                # Update the parameters of the long term memory model
-                # for param_l, param_s in zip(model_long.parameters() ,  model_short.parameters()):
-                #     param_l.data = args.m * param_l.data + (1 - args.m) * param_s.data
 
                 # Validation
-                val_loss_epoch = normal_val(model_long, val_loader, device)
+                val_loss_epoch = normal_val(model, val_loader, device)
 
                 # Test
-                test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model_long, datasets, device, args)
+                test_tasks_id, test_tasks_loss, test_tasks_accuracy, avg_accuracy = test(model, datasets, device, args)
                 
                 # Append the results to dicc_results
                 dicc_results = append_results(dicc_results, id_task+1, epoch+1, train_loss_epoch, val_loss_epoch,
@@ -325,7 +272,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=None):
                 if val_loss_epoch < best_val_loss:
                     best_val_loss = val_loss_epoch
                     patience = args.lr_patience
-                    model_best = copy.deepcopy(model_long)
+                    model_best = copy.deepcopy(model)
                 else:
                     # if the loss does not go down, decrease patience
                     patience -= 1
@@ -342,7 +289,7 @@ def lwf_with_bimeco(datasets, args, aux_training=False, loss_ANCL=None):
                         patience = args.lr_patience
                         for param_group in optimizer.param_groups:
                             param_group['lr'] = lr
-                        model_long.load_state_dict(model_best.state_dict())
+                        model.load_state_dict(model_best.state_dict())
 
                 print(f"Current learning rate: {optimizer.param_groups[0]['lr']}, Patience: {patience}")
 
@@ -405,151 +352,49 @@ def normal_val(model, data_loader, device):
     print(f"Val loss: {loss / len(data_loader)}")
     return loss.item() / len(data_loader)
 
-def lwf_bimeco_train(old_model, auxiliary_network, model_short, model_long, optimizer_short, optimizer_long,
-                            images, labels, images_s, labels_s, images_l, labels_l, args, device, loss_ANCL=None):
+def lwf_membuffer(model, old_model, auxiliary_network, optimizer, images_concat, labels_concat, 
+                     args, loss_ANCL=None):
 
-    model_short.train() # Set the model to training mode
-    model_long.train() # Set the model to training mode
-
-    # Training the short and long term memory models jointly
-    optimizer_short.zero_grad()
-    optimizer_long.zero_grad()
+    model.train() # Set the model to training mode
+    optimizer.zero_grad() # Clear the gradients
 
     # Get the outputs of the models (LwF)
-    model_pred = model_long(images)
-    old_model_pred = old_model(images)
+    ce_loss = F.cross_entropy(model(images_concat), labels_concat) # Cross-entropy loss
+    model_pred = model(images_concat)
+    old_model_pred = old_model(images_concat)
     penalty_lwf = F.kl_div(F.log_softmax(model_pred, dim=1), 
                            F.softmax(old_model_pred, dim=1), reduction="batchmean") # Penalty term
     
     if auxiliary_network is not None:
-        aux_model_pred = auxiliary_network(images)
+        aux_model_pred = auxiliary_network(images_concat)
         penalty_aux_lwf = F.kl_div(F.log_softmax(model_pred, dim=1),
                                     F.softmax(aux_model_pred, dim=1), reduction="batchmean") # Penalty term
-
-    # Get the outputs of the models (BiMeCo)
-    # ce_loss = F.cross_entropy(model_pred, labels)
-    long_loss = F.cross_entropy(model_long(images_l), labels_l)
-    short_loss = F.cross_entropy(model_short(images_s), labels_s)
-
-    # Compute the difference between the feature extractor outputs (BiMeCo)
-    diff_images_s = ((F.normalize(model_long.feature_extractor(images_s)) - 
-                      F.normalize(model_short.feature_extractor(images_s)))**2).sum()
-    diff_images_l = ((F.normalize(model_long.feature_extractor(images_l)) -
-                        F.normalize(model_short.feature_extractor(images_l)))**2).sum()
-    diff = 0.5 * (diff_images_s + diff_images_l) 
 
     # Compute the overall loss (LwF and BiMeCo)
     if loss_ANCL is None:
         if auxiliary_network is not None:
-            loss = (args.lwf_lambda * penalty_lwf + args.lwf_aux_lambda * penalty_aux_lwf + 
-                    args.bimeco_lambda_short * short_loss + args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)  
-            # loss = (ce_loss + args.lwf_lambda * penalty_lwf + args.lwf_aux_lambda * penalty_aux_lwf + 
-            #         args.bimeco_lambda_short * short_loss + args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)   
+            loss = (ce_loss + args.lwf_lambda * penalty_lwf + args.lwf_aux_lambda * penalty_aux_lwf) # Compute the loss  
         else:
-            loss = (args.lwf_lambda * penalty_lwf + args.bimeco_lambda_short * short_loss + 
-                    args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)
-            # loss = (ce_loss + args.lwf_lambda * penalty_lwf + args.bimeco_lambda_short * short_loss + 
-            #         args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)
+            loss = (ce_loss + args.lwf_lambda * penalty_lwf) # Compute the loss 
+
     else:
 
         if auxiliary_network is not None:
-            loss_criterion = criterion(model_pred, labels, old_model_pred, aux_model_pred, 
+            loss = criterion(model_pred, labels_concat, old_model_pred, aux_model_pred, 
                                        args.lwf_lambda, args.lwf_aux_lambda, task=1)
         else:
-            loss_criterion = criterion(model_pred, labels, old_model_pred, None,
-                                        args.lwf_lambda, args.lwf_aux_lambda, task=1)
-            
-        loss = (loss_criterion + args.bimeco_lambda_short * short_loss + 
-                args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)
-    
+            loss = criterion(model_pred, labels_concat, old_model_pred, None,
+                                        args.lwf_lambda, None, task=1)
+                
     epoch_loss = loss.item() # Compute the loss
-    ce_loss = 0 # ce_loss = ce_loss.item() 
-    penalty_lwf_loss = penalty_lwf.item() * args.lwf_lambda
-    penalty_aux_lwf = penalty_aux_lwf.item() * args.lwf_aux_lambda if auxiliary_network is not None else 0
-    loss_short = short_loss.item() * args.bimeco_lambda_short
-    loss_long = long_loss.item() * args.bimeco_lambda_long
-    diff_loss = diff.item() * args.bimeco_lambda_diff
+    ce_loss = ce_loss.item() # Compute the cross-entropy loss
+    lwf_loss = penalty_lwf.item() * args.lwf_lambda # Compute the LwF loss
+    aux_loss = penalty_aux_lwf.item() * args.lwf_aux_lambda if auxiliary_network is not None else 0 # Compute the auxiliary loss
     
     loss.backward() # Backward pass
+    optimizer.step() # Update the weights
 
-    optimizer_short.step() # Update the parameters of the short term memory model
-    optimizer_long.step() # Update the parameters of the long term memory model
-
-    return epoch_loss, ce_loss, penalty_lwf_loss, penalty_aux_lwf, loss_short, loss_long, diff_loss
-
-# def lwf_bimeco_train(old_model, auxiliary_network, model_short, model_long, optimizer_short, optimizer_long,
-#                             images, labels, images_s, labels_s, images_l, labels_l, args, device, loss_ANCL=None):
-
-#     model_short.train() # Set the model to training mode
-#     optimizer_short.zero_grad()
-#     short_loss = F.cross_entropy(model_short(images_s), labels_s) * args.bimeco_lambda_short    
-#     short_loss.backward()
-#     optimizer_short.step()
-
-
-#     model_long.train() # Set the model to training mode
-#     # Training the short and long term memory models jointly
-#     optimizer_long.zero_grad()
-
-#     # Get the outputs of the models (LwF)
-#     model_pred = model_long(images)
-#     old_model_pred = old_model(images)
-#     penalty_lwf = F.kl_div(F.log_softmax(model_pred, dim=1), 
-#                            F.softmax(old_model_pred, dim=1), reduction="batchmean") # Penalty term
-    
-#     if auxiliary_network is not None:
-#         aux_model_pred = auxiliary_network(images)
-#         penalty_aux_lwf = F.kl_div(F.log_softmax(model_pred, dim=1),
-#                                     F.softmax(aux_model_pred, dim=1), reduction="batchmean") # Penalty term
-
-#     # Get the outputs of the models (BiMeCo)
-#     # ce_loss = F.cross_entropy(model_pred, labels)
-#     long_loss = F.cross_entropy(model_long(images_l), labels_l)
-
-#     # Compute the difference between the feature extractor outputs (BiMeCo)
-#     diff_images_s = ((F.normalize(model_long.feature_extractor(images_s)) - 
-#                       F.normalize(model_short.feature_extractor(images_s)))**2).sum()
-#     diff_images_l = ((F.normalize(model_long.feature_extractor(images_l)) -
-#                         F.normalize(model_short.feature_extractor(images_l)))**2).sum()
-#     diff = 0.5 * (diff_images_s + diff_images_l) 
-
-#     # Compute the overall loss (LwF and BiMeCo)
-#     if loss_ANCL is None:
-#         if auxiliary_network is not None:
-#             loss = (args.lwf_lambda * penalty_lwf + args.lwf_aux_lambda * penalty_aux_lwf + 
-#                     args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)  
-#             # loss = (ce_loss + args.lwf_lambda * penalty_lwf + args.lwf_aux_lambda * penalty_aux_lwf + 
-#             #         args.bimeco_lambda_short * short_loss + args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)   
-#         else:
-#             loss = (args.lwf_lambda * penalty_lwf +  
-#                     args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)
-#             # loss = (ce_loss + args.lwf_lambda * penalty_lwf + args.bimeco_lambda_short * short_loss + 
-#             #         args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)
-#     else:
-
-#         if auxiliary_network is not None:
-#             loss_criterion = criterion(model_pred, labels, old_model_pred, aux_model_pred, 
-#                                        args.lwf_lambda, args.lwf_aux_lambda, task=1)
-#         else:
-#             loss_criterion = criterion(model_pred, labels, old_model_pred, None,
-#                                         args.lwf_lambda, args.lwf_aux_lambda, task=1)
-            
-#         loss = (loss_criterion + args.bimeco_lambda_long * long_loss + args.bimeco_lambda_diff * diff)
-    
-#     epoch_loss = loss.item() # Compute the loss
-#     ce_loss = 0 # ce_loss = ce_loss.item() 
-#     penalty_lwf_loss = penalty_lwf.item() * args.lwf_lambda
-#     penalty_aux_lwf = penalty_aux_lwf.item() * args.lwf_aux_lambda if auxiliary_network is not None else 0
-#     loss_short = short_loss.item() * args.bimeco_lambda_short
-#     loss_long = long_loss.item() * args.bimeco_lambda_long
-#     diff_loss = diff.item() * args.bimeco_lambda_diff
-    
-#     loss.backward() # Backward pass
-
-#     optimizer_long.step() # Update the parameters of the long term memory model
-
-#     return epoch_loss, ce_loss, penalty_lwf_loss, penalty_aux_lwf, loss_short, loss_long, diff_loss
-
+    return epoch_loss, ce_loss, lwf_loss, aux_loss
     
 
 def test(model, datasets, device, args):
@@ -620,8 +465,8 @@ def criterion(model_pred, targets, old_model_pred, aux_model_pred, lwf_lambda, l
         if aux_model_pred is not None:
             loss += lwf_aux_lambda * cross_entropy(model_pred, aux_model_pred, exp=1.0/T)
 
-    return loss 
-    # return loss + F.cross_entropy(model_pred, targets)
+    return loss + F.cross_entropy(model_pred, targets)
+    # return loss 
 
 def cross_entropy(outputs, targets, exp=1.0, size_average=True, eps=1e-5):
     # print(outputs.shape)
