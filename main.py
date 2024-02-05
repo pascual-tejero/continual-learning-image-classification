@@ -74,12 +74,12 @@ def main(args):
     # Train the model using the naive approach (no continual learning) for joint training
     dicc_results_test["Joint datasets"] = naive_training(datasets, args, joint_datasets=True)
 
-    # Train the model using the rehearsal approach
+    # # Train the model using the rehearsal approach
     dicc_results_test["Rehearsal 10%"] = rehearsal_training(datasets, args, rehearsal_prop=0.1, random_rehearsal=True)
     dicc_results_test["Rehearsal 30%"] = rehearsal_training(datasets, args, rehearsal_prop=0.3, random_rehearsal=True)
     dicc_results_test["Rehearsal 50%"] = rehearsal_training(datasets, args, rehearsal_prop=0.5, random_rehearsal=True)
 
-    # Train the model using the EWC approach
+    # # Train the model using the EWC approach
     dicc_results_test["EWC"] = ewc_training(datasets, args)
 
     # Train the model using the LwF approach
@@ -110,9 +110,9 @@ if __name__ == '__main__':
     argparse = argparse.ArgumentParser()
 
     # General parameters
-    argparse.add_argument('--exp_name', type=str, default="results_more_parameters_NoMomentum")
+    argparse.add_argument('--exp_name', type=str, default="CL_methods")
     argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--epochs', type=int, default=500) # 500
+    argparse.add_argument('--epochs', type=int, default=1) # 500
     argparse.add_argument('--lr', type=float, default=0.001) # 0.001
     argparse.add_argument('--lr_decay', type=float, default=5) # 5
     argparse.add_argument('--lr_patience', type=int, default=10) # 10

@@ -51,9 +51,11 @@ def save_global_results(dicc_results_test, args):
 
         worksheet.write(row, col, key)
         row += 1
-
         if key == "Joint datasets":
-            for i in range(joint_row):
+            for i in range(args.num_tasks):
+                for j in range(args.num_tasks):
+                    worksheet.write(row, col, value[0][0][j])
+                    row += 1
                 worksheet.write(row, col, value[0][1])
                 row += 1
             continue
@@ -65,8 +67,6 @@ def save_global_results(dicc_results_test, args):
             worksheet.write(row, col, value[i][1])
             row += 1
         
-        joint_row = row - 2
-
     workbook.close()  # Close the workbook
 
 

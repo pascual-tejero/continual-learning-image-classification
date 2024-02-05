@@ -48,9 +48,10 @@ def naive_training(datasets, args, joint_datasets=False):
                 test_dataset = torch.utils.data.ConcatDataset([test_dataset, test_dataset_i]) # Concatenate the datasets
 
         concat_datasets.append([train_dataset, val_dataset, test_dataset]) # Append the datasets to the joint dataset
-        datasets = concat_datasets # Set the datasets to the joint dataset
+        datasets_train = concat_datasets # Set the datasets to the joint dataset
     else:
         path_file = f"./results/{args.exp_name}/fine-tuning_{args.dataset}.xlsx"
+        datasets_train = datasets # Set the datasets to the original datasets
 
     workbook = xlsxwriter.Workbook(path_file) # Create the excel file
     test_acc_final = [] # List to save the test accuracy of each task and the test average accuracy
@@ -67,7 +68,7 @@ def naive_training(datasets, args, joint_datasets=False):
         
     print(f"Number of parameters: {sum(p.numel() for p in model.parameters())}")
 
-    for id_task, task in enumerate(datasets):
+    for id_task, task in enumerate(datasets_train):
         print("="*100)
         print("="*100)
 
