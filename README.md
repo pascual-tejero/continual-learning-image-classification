@@ -21,7 +21,7 @@ The datasets are strategically partitioned into multiple tasks, each representin
 
 ## Run the code
 
-To run the code of this repository, please follow these steps:
+To initiate training using various continual learning methods and apply multiple techniques, please follow these instructions:
 
 1. Clone this repository to your local machine.
   ```bash
@@ -38,10 +38,43 @@ To run the code of this repository, please follow these steps:
   pip install -r requirements.txt
   ```
 4. Run the file run_main.sh or run directly on main.py. You can change the input parameters:
-   ```
-   bash run_main.sh
-   python main.py
-   ```
+  ```
+  bash run_main.sh
+  python main.py
+  ```
+## Input parameters
+
+Here's detailed information about the input parameters:
+
+- General Parameters:
+    - exp_name: Name of the experiment or project.
+    - seed: Random seed for reproducibility.
+    - epochs: Number of training epochs.
+    - lr: Learning rate for optimization.
+    - lr_decay: Learning rate decay factor.
+    - lr_patience: Number of epochs to wait before reducing the learning rate.
+    - lr_min: Minimum learning rate threshold.
+    - batch_size: Batch size for training.
+    - num_tasks: Number of tasks in the continual learning setup.
+      
+- Dataset Parameters
+    - dataset: Choice of dataset for experimentation (e.g., mnist, cifar10, cifar100, cifar100-alternative-dist).
+      
+- EWC Parameters
+    - ewc_lambda: Regularization parameter for Elastic Weight Consolidation (EWC).
+      
+- Distillation Parameters (LwF)
+    - lwf_lambda: Hyperparameter controlling the importance of distillation loss in Learning without Forgetting (LwF).
+    - lwf_aux_lambda: Hyperparameter controlling the importance of auxiliary distillation loss in LwF.
+      
+- BiMeCo Parameters
+    - memory_size: Size of the memory buffer in Bilateral Memory Consolidation (BiMeCo).
+    - bimeco_lambda_short: Regularization parameter for short-term network in BiMeCo.
+    - bimeco_lambda_long: Regularization parameter for long-term network in BiMeCo.
+    - bimeco_lambda_diff: Regularization parameter controlling the difference between short-term and long-term networks in BiMeCo.
+    - m: Momentum parameter for updating the model parameters.
+
+These instructions will enable you to seamlessly run the code and explore the capabilities of the continual learning methods implemented in this repository.
 
 ## Results
 
