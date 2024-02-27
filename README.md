@@ -37,7 +37,7 @@ To initiate training using various continual learning methods and apply multiple
   ```bash
   pip install -r requirements.txt
   ```
-4. Execute the file run_main.sh or run main.py directly. You can modify the input parameters as needed:
+4. Execute the file ```run_main.sh``` or ```run main.py``` directly. You can modify the input parameters as needed:
   ```bash
   bash run_main.sh
   ```
