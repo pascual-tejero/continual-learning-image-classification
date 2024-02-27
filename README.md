@@ -19,6 +19,30 @@ The datasets are strategically partitioned into multiple tasks, each representin
 
 6. **BiMeCo + LwF**: This approach combines BiMeCo with LwF, leveraging the strengths of both methods to enhance performance and mitigate forgetting.
 
+## Run the code
+
+To run the code of this repository, please follow these steps:
+
+1. Clone this repository to your local machine.
+  ```bash
+  https://github.com/pascutc98/continual-learning-methods
+  cd continual-learning-methods
+  ```
+2. Create and activate a conda environment:
+  ```bash
+  conda create -n cl_methods python=3.8
+  conda activate cl_methods
+  ```
+3. Install the required dependencies by using the provided `requirements.txt` file:
+  ```bash
+  pip install -r requirements.txt
+  ```
+4. Run the file run_main.sh or run directly on main.py. You can change the input parameters:
+   ```
+   bash run_main.sh
+   python main.py
+   ```
+
 ## Results
 
 We meticulously document the outcomes of each CL method in an Excel file for comprehensive evaluation. The results showcase the effectiveness of each technique in adapting to new tasks while maintaining performance on previous tasks. Through careful analysis, we provide insights into the strengths and limitations of different CL approaches in the context of image classification tasks.
