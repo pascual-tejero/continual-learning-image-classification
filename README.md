@@ -86,7 +86,7 @@ We meticulously document the outcomes of each CL method in an Excel file for com
 ## References
 [1] Sanghwan Kim, Lorenzo Noci, Antonio Orvieto, Thomas Hofmann. [Achieving a Better Stability-Plasticity Trade-off via Auxiliary Networks in Continual Learning](https://arxiv.org/abs/2303.09483). In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 11930-11939. 2023.
 
-[2] Nie, Xing, Xu, Shixiong, Liu, Xiyan, Meng, Gaofeng, Huo, Chunlei, & Xiang, Shiming. (2023). [Bilateral Memory Consolidation for Continual Learning](https://openaccess.thecvf.com/content/CVPR2023/html/Nie_Bilateral_Memory_Consolidation_for_Continual_Learning_CVPR_2023_paper.html). In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR) (pp. 16026-16035).
+[2] Xing Nie, Shixiong Xu, Xiyan Liu, Gaofeng Meng, Chunlei Huo, Shiming Xiang. [Bilateral Memory Consolidation for Continual Learning](https://openaccess.thecvf.com/content/CVPR2023/html/Nie_Bilateral_Memory_Consolidation_for_Continual_Learning_CVPR_2023_paper.html). Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR), 2023, pp. 16026-16035.
 
 
 
