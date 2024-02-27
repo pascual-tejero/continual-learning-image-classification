@@ -74,7 +74,7 @@ Here's detailed information about the input parameters:
     - bimeco_lambda_diff: Regularization parameter controlling the difference between short-term and long-term networks in BiMeCo.
     - m: Momentum parameter for updating the model parameters.
 
-These instructions will enable you to seamlessly run the code and explore the capabilities of the continual learning methods implemented in this repository.
+Understanding these parameters will allow you to customize the training process and experiment with different configurations to achieve optimal results. For more information about these parameters, you can run the following command: ```python main.py --help```.
 
 ## Results
 
