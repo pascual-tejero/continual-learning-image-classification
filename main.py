@@ -136,7 +136,7 @@ if __name__ == '__main__':
 
     # BiMeCo parameters
     argparse.add_argument('--memory_size' , type=int, default=22500,
-                        help="Size of the memory buffer in Bilateral Memory Consolidation (BiMeCo).")
+                        help="Size of the memory buffer which stores samples from previous tasks in Bilateral Memory Consolidation (BiMeCo).")
     argparse.add_argument('--bimeco_lambda_short' , type=float, default=1.5,
                         help="Regularization parameter for short-term network in BiMeCo.")
     argparse.add_argument('--bimeco_lambda_long' , type=float, default=2.5,
