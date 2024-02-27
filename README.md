@@ -49,32 +49,36 @@ To initiate training using various continual learning methods and apply multiple
 Here's detailed information about the input parameters:
 
 - General Parameters:
-    - exp_name: Name of the experiment or project.
-    - seed: Random seed for reproducibility.
-    - epochs: Number of training epochs.
-    - lr: Learning rate for optimization.
-    - lr_decay: Learning rate decay factor.
-    - lr_patience: Number of epochs to wait before reducing the learning rate.
-    - lr_min: Minimum learning rate threshold.
-    - batch_size: Batch size for training.
-    - num_tasks: Number of tasks in the continual learning setup.
+    - ```exp_name```: Name of the experiment or project.
+    - ```seed```: Random seed for reproducibility.
+    - ```epochs```: Number of training epochs.
+    - ```lr```: Learning rate for optimization.
+    - ```lr_decay```: Learning rate decay factor.
+    - ```lr_patience```: Number of epochs to wait before reducing the learning rate.
+    - ```lr_min```: Minimum learning rate threshold.
+    - ```batch_size```: Batch size for training.
+    - ```num_tasks```: Number of tasks in the continual learning setup.
       
 - Dataset Parameters
-    - dataset: Choice of dataset for experimentation (e.g., mnist, cifar10, cifar100, cifar100-alternative-dist).
+    - ```dataset```: Choice of dataset for experimentation (e.g., mnist, cifar10, cifar100, cifar100-alternative-dist).
+        - ```mnist```: Datasets used are MNIST and Fashion MNIST. This option configures the number of tasks to 2 by default.
+        - ```cifar10```: Dataset used is CIFAR-10. The number of tasks can be customized according to user preferences.
+        - ```cifar10```: Dataset used is CIFAR-100. The number of tasks can be customized according to user preferences.
+        - ```cifar100```: Dataset used is CIFAR-100. This option sets the number of tasks to 2. Each task exhibits a distinct data distribution: Task 1 comprises 80 classes, while Task 2 includes 20 classes. Moreover, there is a memory leakage of 5% of data from each class of Task 2 into Task 1.
       
 - EWC Parameters
-    - ewc_lambda: Regularization parameter for Elastic Weight Consolidation (EWC).
+    - ```ewc_lambda```: Regularization parameter for Elastic Weight Consolidation (EWC).
       
 - Distillation Parameters (LwF)
-    - lwf_lambda: Hyperparameter controlling the importance of distillation loss in Learning without Forgetting (LwF).
-    - lwf_aux_lambda: Hyperparameter controlling the importance of auxiliary distillation loss in LwF.
+    - ```lwf_lambda```: Hyperparameter controlling the importance of distillation loss in Learning without Forgetting (LwF).
+    - ```lwf_aux_lambda```: Hyperparameter controlling the importance of auxiliary distillation loss in LwF.
       
 - BiMeCo Parameters
-    - memory_size: Size of the memory buffer in Bilateral Memory Consolidation (BiMeCo).
-    - bimeco_lambda_short: Regularization parameter for short-term network in BiMeCo.
-    - bimeco_lambda_long: Regularization parameter for long-term network in BiMeCo.
-    - bimeco_lambda_diff: Regularization parameter controlling the difference between the feature extractors of short-term and long-term networks in BiMeCo.
-    - m: Momentum parameter for updating the model parameters.
+    - ```memory_size```: Size of the memory buffer which stores samples from previous tasks in Bilateral Memory Consolidation (BiMeCo).
+    - ```bimeco_lambda_short```: Regularization parameter for short-term network in BiMeCo.
+    - ```bimeco_lambda_long```: Regularization parameter for long-term network in BiMeCo.
+    - ```bimeco_lambda_diff```: Regularization parameter controlling the difference between the feature extractors of short-term and long-term networks in BiMeCo.
+    - ```m```: Momentum parameter for updating the model parameters.
 
 Understanding these parameters will allow you to customize the training process and experiment with different configurations to achieve optimal results. For more information about these parameters, you can run the following command: 
   ```
@@ -83,7 +87,9 @@ Understanding these parameters will allow you to customize the training process 
 
 ## Results
 
-We meticulously document the outcomes of each CL method in an Excel file for comprehensive evaluation. The results showcase the effectiveness of each technique in adapting to new tasks while maintaining performance on previous tasks. Through careful analysis, we provide insights into the strengths and limitations of different CL approaches in the context of image classification tasks.
+For each run, a folder will be created in ```results``` with the experiment name. This folder contains detailed Excel files for each CL method. These files display the train and validation loss for each epoch and the corresponding test accuracy for each task, providing a comprehensive view of each CL method's performance. Additionally, at the end of each run, an Excel file is generated with a summary of each CL method. This summary includes the average accuracy of each task and the individual accuracy of each task, facilitating easy comparison between methods.
+
+The ```results``` folder showcases multiple experiments conducted with different datasets available in this repository: MNIST with Fashion MNIST, CIFAR-10, CIFAR-100, and CIFAR-100 with data leakage. In these experiments, the number of tasks was set to 2, and the memory buffer size from BiMeCo varied across different experiments. Specifically, the memory buffer size ranged from 50%, 30%, to 10% of the data from task 1, allowing for thorough exploration of the impact of memory buffer size on model performance.
 
 ## References
 [1] Sanghwan Kim, Lorenzo Noci, Antonio Orvieto, Thomas Hofmann. [Achieving a Better Stability-Plasticity Trade-off via Auxiliary Networks in Continual Learning](https://arxiv.org/abs/2303.09483). In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pp. 11930-11939. 2023.
