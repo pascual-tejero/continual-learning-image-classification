@@ -37,9 +37,11 @@ To initiate training using various continual learning methods and apply multiple
   ```bash
   pip install -r requirements.txt
   ```
-4. Run the file run_main.sh or run directly on main.py. You can change the input parameters:
-  ```
+4. Execute the file ```run_main.sh``` or ```run main.py``` directly. You can modify the input parameters as needed:
+  ```bash
   bash run_main.sh
+  ```
+  ```bash
   python main.py
   ```
 ## Input parameters
@@ -71,7 +73,7 @@ Here's detailed information about the input parameters:
     - memory_size: Size of the memory buffer in Bilateral Memory Consolidation (BiMeCo).
     - bimeco_lambda_short: Regularization parameter for short-term network in BiMeCo.
     - bimeco_lambda_long: Regularization parameter for long-term network in BiMeCo.
-    - bimeco_lambda_diff: Regularization parameter controlling the difference between short-term and long-term networks in BiMeCo.
+    - bimeco_lambda_diff: Regularization parameter controlling the difference between the feature extractors of short-term and long-term networks in BiMeCo.
     - m: Momentum parameter for updating the model parameters.
 
 Understanding these parameters will allow you to customize the training process and experiment with different configurations to achieve optimal results. For more information about these parameters, you can run the following command: 
