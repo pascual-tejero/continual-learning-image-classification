@@ -5,3 +5,4 @@ six
 xlsxwriter
 matplotlib
 tqdm
+requests
