@@ -110,33 +110,42 @@ if __name__ == '__main__':
     argparse = argparse.ArgumentParser()
 
     # General parameters
-    argparse.add_argument('--exp_name', type=str, default="CL_methods")
-    argparse.add_argument('--seed', type=int, default=0)
-    argparse.add_argument('--epochs', type=int, default=500) # 500
-    argparse.add_argument('--lr', type=float, default=0.001) # 0.001
-    argparse.add_argument('--lr_decay', type=float, default=5) # 5
-    argparse.add_argument('--lr_patience', type=int, default=10) # 10
-    argparse.add_argument('--lr_min', type=float, default=1e-8) # 1e-8
-    argparse.add_argument('--batch_size', type=int, default=200) # 200
-    argparse.add_argument('--num_tasks', type=int, default=2) # 2
+    argparse.add_argument('--exp_name', type=str, default="CL_methods", help="Name of the experiment or project.")
+    argparse.add_argument('--seed', type=int, default=0, help="Random seed for reproducibility.")
+    argparse.add_argument('--epochs', type=int, default=500, help="Number of training epochs.")
+    argparse.add_argument('--lr', type=float, default=0.001, help="Learning rate for optimization.")
+    argparse.add_argument('--lr_decay', type=float, default=5, help="Learning rate decay factor.")
+    argparse.add_argument('--lr_patience', type=int, default=10, help="Number of epochs to wait before reducing the learning rate.")
+    argparse.add_argument('--lr_min', type=float, default=1e-8, help="Minimum learning rate threshold.")
+    argparse.add_argument('--batch_size', type=int, default=200, help="Batch size for training.")
+    argparse.add_argument('--num_tasks', type=int, default=2, help="Number of tasks in the continual learning setup.")
 
     # Dataset parameters: mnist, cifar10, cifar100, cifar100-alternative-dist
-    argparse.add_argument('--dataset', type=str, default="cifar100")
+    argparse.add_argument('--dataset', type=str, default="cifar100",
+                        help="Choice of dataset for experimentation (e.g., mnist, cifar10, cifar100, cifar100-alternative-dist).")
 
     # EWC parameters
-    argparse.add_argument('--ewc_lambda' , type=float, default=100000) # 1000
+    argparse.add_argument('--ewc_lambda' , type=float, default=100000,
+                        help="Regularization parameter for Elastic Weight Consolidation (EWC).")
 
     # Distillation parameters (LwF)
-    argparse.add_argument('--lwf_lambda' , type=float, default=0.8) # 1
-    argparse.add_argument('--lwf_aux_lambda' , type=float, default=0.75) # 0.5
+    argparse.add_argument('--lwf_lambda' , type=float, default=0.8,
+                        help="Hyperparameter controlling the importance of distillation loss in Learning without Forgetting (LwF).")
+    argparse.add_argument('--lwf_aux_lambda' , type=float, default=0.75,
+                        help="Hyperparameter controlling the importance of auxiliary distillation loss in LwF.")
 
     # BiMeCo parameters
-    argparse.add_argument('--memory_size' , type=int, default=22500)
-    argparse.add_argument('--bimeco_lambda_short' , type=float, default=1.5)
-    argparse.add_argument('--bimeco_lambda_long' , type=float, default=2.5)
-    argparse.add_argument('--bimeco_lambda_diff' , type=float, default=4)
-    argparse.add_argument('--m' , type=float, default=0.15) # Momentum
+    argparse.add_argument('--memory_size' , type=int, default=22500,
+                        help="Size of the memory buffer in Bilateral Memory Consolidation (BiMeCo).")
+    argparse.add_argument('--bimeco_lambda_short' , type=float, default=1.5,
+                        help="Regularization parameter for short-term network in BiMeCo.")
+    argparse.add_argument('--bimeco_lambda_long' , type=float, default=2.5,
+                        help="Regularization parameter for long-term network in BiMeCo.")
+    argparse.add_argument('--bimeco_lambda_diff' , type=float, default=4,
+                        help="Regularization parameter controlling the difference between short-term and long-term networks in BiMeCo.")
+    argparse.add_argument('--m' , type=float, default=0.15,
+                        help="Momentum parameter for updating the model weights.")
 
     # Run the main function
     main(argparse.parse_args())
-    
+        
