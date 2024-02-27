@@ -71,7 +71,7 @@ Here's detailed information about the input parameters:
     - memory_size: Size of the memory buffer in Bilateral Memory Consolidation (BiMeCo).
     - bimeco_lambda_short: Regularization parameter for short-term network in BiMeCo.
     - bimeco_lambda_long: Regularization parameter for long-term network in BiMeCo.
-    - bimeco_lambda_diff: Regularization parameter controlling the difference between short-term and long-term networks in BiMeCo.
+    - bimeco_lambda_diff: Regularization parameter controlling the difference between the feature extractors of short-term and long-term networks in BiMeCo.
     - m: Momentum parameter for updating the model parameters.
 
 Understanding these parameters will allow you to customize the training process and experiment with different configurations to achieve optimal results. For more information about these parameters, you can run the following command: 
