@@ -63,8 +63,8 @@ Here's detailed information about the input parameters:
     - ```dataset```: Choice of dataset for experimentation (e.g., mnist, cifar10, cifar100, cifar100-alternative-dist).
         - ```mnist```: Datasets used are MNIST and Fashion MNIST. This option configures the number of tasks to 2 by default.
         - ```cifar10```: Dataset used is CIFAR-10. The number of tasks can be customized according to user preferences.
-        - ```cifar10```: Dataset used is CIFAR-100. The number of tasks can be customized according to user preferences.
-        - ```cifar100```: Dataset used is CIFAR-100. This option sets the number of tasks to 2. Each task exhibits a distinct data distribution: Task 1 comprises 80 classes, while Task 2 includes 20 classes. Moreover, there is a memory leakage of 5% of data from each class of Task 2 into Task 1.
+        - ```cifar100```: Dataset used is CIFAR-100. The number of tasks can be customized according to user preferences.
+        - ```cifar100-alternative-dist```: Dataset used is CIFAR-100. This option sets the number of tasks to 2. Each task exhibits a distinct data distribution: Task 1 comprises 80 classes, while Task 2 includes 20 classes. Moreover, there is a memory leakage of 5% of data from each class of Task 2 into Task 1.
       
 - EWC Parameters
     - ```ewc_lambda```: Regularization parameter for Elastic Weight Consolidation (EWC).
