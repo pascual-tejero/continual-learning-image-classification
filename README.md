@@ -11,13 +11,15 @@ The datasets are strategically partitioned into multiple tasks, each representin
 
 2. **Joint-datasets**: In this approach, all datasets are combined into a single training set, and the model is trained jointly on all tasks simultaneously. This method aims to leverage the diversity of the datasets to improve generalization and adaptability. This technique is to know the upper-bound performance of the neural network across multiple tasks.
 
-3. **Elastic Weight Consolidation (EWC)**: EWC is a regularization technique that mitigates catastrophic forgetting by preserving important parameters learned during previous tasks. It achieves this by penalizing changes to critical weights based on their importance for previous tasks.
+3. **Rehearsal**: It involves selecting random samples from previous tasks and adding them to the current task dataset during training. This method helps mitigate catastrophic forgetting by allowing the model to periodically revisit and reinforce its knowledge of past tasks while learning new ones. 
+   
+4. **Elastic Weight Consolidation (EWC)**: EWC is a regularization technique that mitigates catastrophic forgetting by preserving important parameters learned during previous tasks. It achieves this by penalizing changes to critical weights based on their importance for previous tasks.
 
-4. **Learning without Forgetting (LwF)**: LwF addresses forgetting by distilling knowledge from the previous model onto the current model during training on new tasks. It does so by using the previous model's predictions as soft targets to guide the learning process. Additionally, an alternative training approach involves incorporating an auxiliary network that is optimized for the current task [1]. This results in a loss function comprising both a stability term (based on the previous network) and a plasticity term (related to the auxiliary network).
+5. **Learning without Forgetting (LwF)**: LwF addresses forgetting by distilling knowledge from the previous model onto the current model during training on new tasks. It does so by using the previous model's predictions as soft targets to guide the learning process. Additionally, an alternative training approach involves incorporating an auxiliary network that is optimized for the current task [1]. This results in a loss function comprising both a stability term (based on the previous network) and a plasticity term (related to the auxiliary network).
 
-5. **Bilateral Memory Consolidation (BiMeCo)**: BiMeCo incorporates two neural networks: a short-term network and a long-term network. The short-term network is designed for rapid learning from new tasks, while the long-term network serves as a repository for storing essential information from previous tasks. The memory consolidation process involves knowledge distillation and feature extraction, facilitating the transfer of knowledge from the short-term network to the long-term network while minimizing interference with existing knowledge [2].
+6. **Bilateral Memory Consolidation (BiMeCo)**: BiMeCo incorporates two neural networks: a short-term network and a long-term network. The short-term network is designed for rapid learning from new tasks, while the long-term network serves as a repository for storing essential information from previous tasks. The memory consolidation process involves knowledge distillation and feature extraction, facilitating the transfer of knowledge from the short-term network to the long-term network while minimizing interference with existing knowledge [2].
 
-6. **BiMeCo + LwF**: This approach combines BiMeCo with LwF, leveraging the strengths of both methods to enhance performance and mitigate forgetting.
+7. **BiMeCo + LwF**: This approach combines BiMeCo with LwF, leveraging the strengths of both methods to enhance performance and mitigate forgetting.
 
 ## Run the code
 
